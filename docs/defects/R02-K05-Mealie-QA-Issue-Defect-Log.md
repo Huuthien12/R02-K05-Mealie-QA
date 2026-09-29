@@ -1214,3 +1214,487 @@ Before opening P1 controlled write/lifecycle testing:
 4. Run `pip check`, selection test, and `git diff --check`.
 5. Review `git status` and commit the coherent Phase 3 P0 artifacts.
 6. Define P1 cleanup/rollback rules before executing POST/PUT/PATCH/DELETE operations.
+
+---
+
+# 12. Phase 3 P1 — Controlled Lifecycle / Write Testing
+
+## 12.1 P1 Scope
+
+P1 mở rộng từ P0 read-only sang controlled write/lifecycle testing.
+
+Các resource được kiểm thử:
+
+- Shopping List
+- Shopping Item
+- Meal Plan
+- Recipe
+
+Nguyên tắc an toàn:
+
+- Chỉ tạo/sửa/xóa resource do test tạo.
+- Dùng unique marker cho dữ liệu tạm.
+- Cleanup resource sau test.
+- Child resource được cleanup trước parent khi cần.
+- Không broad-fuzz write endpoints.
+- Không commit API token hoặc credential.
+
+---
+
+## 12.2 P1-A — Shopping List
+
+### Lifecycle
+
+Luồng kiểm thử:
+
+```text
+POST create
+    ↓
+GET
+    ↓
+PUT update
+    ↓
+GET verify
+    ↓
+DELETE
+    ↓
+GET after delete
+```
+
+Kết quả:
+
+```text
+CREATE             PASS
+READ               PASS
+UPDATE             PASS
+VERIFY UPDATE      PASS
+DELETE             PASS
+GET after delete   404
+```
+
+Runtime trả `404` sau khi resource đã bị xóa.
+
+### Boundary Testing
+
+Các payload:
+
+```text
+{}
+{"name": null}
+{"name": ""}
+```
+
+Kết quả:
+
+```text
+3 passed
+```
+
+Không phát hiện SUT defect mới.
+
+---
+
+## 12.3 P1-B — Shopping Item
+
+### Lifecycle
+
+Test tạo Shopping List tạm làm parent trước khi tạo Shopping Item.
+
+Luồng:
+
+```text
+Create parent Shopping List
+        ↓
+Create Shopping Item
+        ↓
+GET Item
+        ↓
+PUT Item
+        ↓
+GET verify
+        ↓
+DELETE Item
+        ↓
+GET after delete
+        ↓
+DELETE parent
+```
+
+Kết quả:
+
+```text
+1 passed
+```
+
+### Boundary Testing
+
+Các nhóm input:
+
+- minimal valid
+- nullable optional fields
+- zero quantity
+- negative quantity
+- missing `shoppingListId`
+- invalid UUID
+
+Kết quả campaign:
+
+```text
+1 passed
+```
+
+Các response nhận được nằm trong documented response set `201/422`.
+
+Không phát hiện SUT defect mới.
+
+---
+
+## TEST-05 — Shopping Item POST response shape assumption
+
+### Trạng thái
+
+**Resolved**
+
+### Hiện tượng
+
+Test harness ban đầu giả định:
+
+```python
+created["id"]
+```
+
+Nhưng POST Shopping Item thực tế trả wrapper:
+
+```json
+{
+  "createdItems": [],
+  "updatedItems": [],
+  "deletedItems": []
+}
+```
+
+Resource mới nằm tại:
+
+```python
+created["createdItems"][0]["id"]
+```
+
+### Xử lý
+
+Test harness được sửa theo runtime response thực tế.
+
+Đây là **test harness issue**, không phải defect của Mealie.
+
+---
+
+## 12.4 P1-C — Meal Plan
+
+### Lifecycle
+
+`UpdatePlanEntry` yêu cầu:
+
+```text
+date
+id
+groupId
+userId
+```
+
+Test không tự tạo các ID này mà lấy server representation từ GET trước khi PUT.
+
+Kết quả:
+
+```text
+POST create        → 201
+GET                → 200
+PUT update         → 200
+GET verify         → 200
+DELETE             → 200
+GET after delete   → 404
+```
+
+Final result:
+
+```text
+1 passed
+```
+
+### Boundary Testing
+
+| Case | Actual Status |
+|---|---:|
+| minimal_valid | 422 |
+| empty_title | 422 |
+| null_recipe_id | 422 |
+| missing_required_date | 422 |
+| invalid_date_format | 422 |
+| invalid_recipe_uuid | 422 |
+| invalid_entry_type | 422 |
+
+Final result:
+
+```text
+1 passed
+```
+
+Không có undocumented status trong campaign này.
+
+---
+
+## OBS-01 — Meal Plan cross-field validation
+
+### Trạng thái
+
+**Observed**
+
+OpenAPI `CreatePlanEntry` thể hiện `date` là required field.
+
+Tuy nhiên runtime còn áp dụng validation liên trường liên quan tới `recipeId` và `title`.
+
+Ví dụ request chỉ chứa `date` trả:
+
+```text
+HTTP 422
+```
+
+với message:
+
+```text
+Value error, `recipe_id=None` or `title=` must be provided
+```
+
+Trong khi happy-path có `date` và `title` có nội dung tạo resource thành công.
+
+### Classification
+
+Contract/schema limitation observation.
+
+Không tính thành SUT defect mới vì runtime trả `422`, thuộc documented response set.
+
+---
+
+## 12.5 P1-D — Recipe
+
+### Happy-path Lifecycle
+
+Payload hợp lệ:
+
+```json
+{
+  "name": "K05 P1 Recipe <unique>"
+}
+```
+
+Kết quả:
+
+```text
+POST             → 201
+GET by slug      → 200
+DELETE           → 200
+GET after delete → 404
+```
+
+Final result:
+
+```text
+1 passed
+```
+
+---
+
+## TEST-06 — Recipe POST returns slug string
+
+### Trạng thái
+
+**Resolved**
+
+Test harness ban đầu giả định POST `/api/recipes` trả recipe object.
+
+Runtime thực tế trả JSON string chứa slug, ví dụ:
+
+```text
+"k05-p1-recipe-1328bc78"
+```
+
+Test được sửa để dùng string này làm slug và GET resource để xác minh `name`.
+
+Đây là **test harness issue**, không phải SUT defect.
+
+---
+
+# 13. DEF-04 — Controlled Reproduction Result
+
+## Endpoint
+
+```text
+POST /api/recipes
+```
+
+## Payload
+
+```json
+{
+  "name": ""
+}
+```
+
+## OpenAPI Contract
+
+Documented responses:
+
+```text
+201
+422
+```
+
+## Controlled Reproduction
+
+DEF-04 được chạy riêng 3 lần trong P1:
+
+```text
+Attempt 1 → HTTP 500
+Attempt 2 → HTTP 500
+Attempt 3 → HTTP 500
+```
+
+Reproduction result:
+
+```text
+[500, 500, 500]
+```
+
+Response:
+
+```json
+{
+  "detail": {
+    "message": "Unknown Error",
+    "error": true,
+    "exception": "AssertionError"
+  }
+}
+```
+
+## Reproducibility
+
+```text
+3/3
+```
+
+## Updated Status
+
+**CONFIRMED / REPRODUCIBLE**
+
+DEF-04 không còn chỉ là potential candidate.
+
+## Classification
+
+- Unexpected server-side failure
+- Undocumented HTTP status
+- Input-validation robustness defect
+- Schema-based/fuzz finding
+
+## Test Result Interpretation
+
+`test_p1_recipe_empty_name.py` intentionally fails because its contract oracle requires:
+
+```text
+201 or 422
+```
+
+while the SUT returns:
+
+```text
+500
+```
+
+Do not change the assertion to expect `500` merely to make the suite pass.
+
+The failing test is retained as regression/evidence for DEF-04.
+
+## Root Cause
+
+Source-level root cause has not been established.
+
+Runtime evidence exposes:
+
+```text
+AssertionError
+```
+
+No further root-cause claim is made without source/log analysis.
+
+---
+
+# 14. P1 Final Validation
+
+Normal P1 regression suite:
+
+```text
+9 passed
+```
+
+DEF-04 regression:
+
+```text
+Attempt 1 → 500
+Attempt 2 → 500
+Attempt 3 → 500
+
+Expected defect-detection result:
+1 failed
+```
+
+Git validation:
+
+```text
+git diff --check → PASS
+```
+
+Safety:
+
+```text
+Temporary resources cleaned up
+No token committed
+No credential committed
+No uncontrolled broad write fuzzing
+```
+
+---
+
+# 15. Defect Status After P1
+
+| ID | Finding | Status |
+|---|---|---|
+| DEF-01 | `GET /api/recipes?foods=` → HTTP 500 | Reproducible |
+| DEF-02 | `orderBy=null` → undocumented HTTP 400 | Reproducible |
+| DEF-03 | nonexistent detail resource → undocumented HTTP 404 | Reproducible |
+| DEF-04 | `POST /api/recipes {"name": ""}` → HTTP 500 / AssertionError | Confirmed / Reproducible |
+
+### P1 Result
+
+```text
+Shopping List lifecycle/boundary   PASS
+Shopping Item lifecycle/boundary   PASS
+Meal Plan lifecycle/boundary       PASS
+Recipe happy-path lifecycle        PASS
+DEF-04 controlled reproduction     500 / 500 / 500
+Normal P1 regression               9 passed
+```
+
+**Phase 3 P1 controlled lifecycle/write testing: COMPLETE.**
+
+---
+
+## Maintenance Note — P1
+
+Defect log này tiếp tục là living document.
+
+Các phase tiếp theo phải:
+
+1. Giữ lại evidence P0 và P1.
+2. Không ghi đè lịch sử finding.
+3. Thêm trạng thái retest nếu SUT baseline thay đổi.
+4. Phân biệt SUT defect với environment/tooling issue.
+5. Không suy đoán root cause nếu chưa có source/log evidence.
+6. Giữ reproducer tối thiểu cho defect đã xác nhận.
