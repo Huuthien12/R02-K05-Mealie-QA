@@ -1,399 +1,1570 @@
-# R02-K05 Mealie QA — Issue & Defect Log
+# R02-K05-Mealie-QA — Issue & Defect Log
 
-## 1. Thông tin tài liệu
+> Tài liệu theo dõi tập trung các lỗi, sự cố môi trường, vấn đề công cụ kiểm thử và defect candidate phát hiện trong quá trình thực hiện đồ án môn **Kiểm thử phần mềm**.
+>
+> **Quy ước:** Không phải mọi mục trong tài liệu này đều là lỗi của Mealie. Các mục được phân loại rõ để tránh nhầm lẫn khi viết báo cáo cuối kỳ.
 
-- **Dự án:** R02-K05-Mealie-QA
+## 1. Baseline
+
 - **SUT:** Mealie
-- **Kỹ thuật kiểm thử:** Schema-Based API / Fuzz Testing
-- **Công cụ chính:** Schemathesis, pytest, requests
-- **Baseline SUT:** Mealie `v3.28.0`
-- **Commit SHA:** `0552eaa4a80031b8572849cca0ed95d07f1be001`
-- **Mục đích:** Lưu tập trung các lỗi môi trường, lỗi cấu hình, vấn đề test harness, quan sát về contract và defect của SUT trong suốt dự án.
-- **Nguyên tắc:** Không coi lỗi của test code/tooling là defect của Mealie. Chỉ nâng thành defect khi có bằng chứng runtime/contract phù hợp và có thể tái hiện.
+- **Release:** `v3.28.0`
+- **Pinned commit:** `0552eaa4a80031b8572849cca0ed95d07f1be001`
+- **API specification:** OpenAPI 3.1.0
+- **OpenAPI snapshot:** `schema/snapshots/mealie-v3.28.0-openapi.json`
+- **Local base URL:** `http://localhost:9091`
+- **Testing approach:** Schema-Based API / Fuzz Testing
+- **Main tool:** Schemathesis 4.28.0
+- **Python:** 3.11.9
 
 ---
 
-## 2. Quy ước phân loại
+## 2. Tổng hợp issue/defect
 
-| Mã | Nhóm | Ý nghĩa |
-|---|---|---|
-| ENV | Environment | Lỗi môi trường chạy, Docker, hệ điều hành |
-| CFG | Configuration | Sai URL/cấu hình/baseline |
-| TEST | Test Harness / Tooling | Lỗi hoặc giới hạn của code kiểm thử/công cụ |
-| OBS | Observation | Hành vi đáng chú ý nhưng chưa đủ cơ sở gọi là defect |
-| DEF | SUT Defect | Lỗi/không nhất quán của Mealie hoặc API contract đã có bằng chứng |
-
-Trạng thái sử dụng:
-
-- **RESOLVED:** Đã xử lý.
-- **OPEN:** Còn cần xử lý.
-- **OBSERVED:** Đã quan sát, chưa phân loại thành defect.
-- **CANDIDATE:** Nghi ngờ defect, cần triage/tái hiện.
-- **CONFIRMED / REPRODUCIBLE:** Đã tái hiện ổn định trong môi trường kiểm thử hiện tại.
+| ID | Nhóm | Mô tả ngắn | Trạng thái | SUT defect? |
+|---|---|---|---|---|
+| ENV-01 | Environment | Windows CRLF/LF làm shell script/container khởi động lỗi | Resolved | Không |
+| ENV-02 | Environment | Docker daemon/named pipe từng không khả dụng | Resolved | Không |
+| ENV-03 | Environment | Docker config từng báo Access denied | Observed/Workaround | Không |
+| CFG-01 | Configuration | Nhầm `/api/openapi.json`; schema đúng ở `/openapi.json` | Resolved | Không |
+| CFG-02 | Configuration | Runtime báo `develop` dù baseline Git là `v3.28.0` | Understood | Không |
+| TEST-01 | Test Infrastructure | Codex process không nhận `MEALIE_API_TOKEN` từ PowerShell | Workaround | Không |
+| TEST-02 | Test Tooling | Schemathesis CLI filter chọn 118 operations và chạy POST ngoài P0 | Open | Không xác định là lỗi Schemathesis; hiện là tooling/config issue |
+| TEST-03 | Test Design | Phase `examples` sinh 0 cases vì schema không có examples | Understood | Không |
+| TEST-04 | Test Tooling | pytest không nhận `--hypothesis-max-examples=1` | Resolved | Không |
+| DEF-01 | SUT | `GET /api/recipes?foods=` trả HTTP 500 | Reproducible 3/3 | Defect candidate |
+| DEF-02 | SUT / API Contract | `orderBy=null` trả HTTP 400 không được OpenAPI document trên 3 GET endpoints | Reproduced across 3 endpoints | Reproducible contract defect candidate |
+| DEF-03 | SUT / API Contract | Detail resource không tồn tại trả HTTP 404 nhưng OpenAPI không document 404 | Reproduced on 2 endpoints | Reproducible contract defect candidate |
+| DEF-04 | SUT | `POST /api/recipes` với `{"name": ""}` trả HTTP 500 / AssertionError | Needs controlled triage | Defect candidate |
 
 ---
 
-# 3. Environment / Configuration Issues
+# 3. Environment / Setup Issues
 
-## ENV-01 — Windows CRLF làm shell script trong container không chạy
-
-**Trạng thái:** RESOLVED
+## ENV-01 — Windows CRLF/LF làm Mealie container khởi động lỗi
 
 ### Hiện tượng
-Trong quá trình build/run Mealie trên Windows, các shell script như `setup_nltk_data.sh`, `run.sh` hoặc entry script gặp lỗi do line ending CRLF.
 
-### Nguyên nhân
-Repository/source được checkout trên Windows với line ending không phù hợp cho shell script chạy trong Linux container.
+Trong quá trình build/chạy Mealie local trên Windows, shell scripts gặp vấn đề line endings. Container từng restart hoặc không chạy đúng, bao gồm lỗi liên quan đến script như:
+
+```text
+/app/run.sh: no such file
+```
+
+Các shell script khác cũng bị ảnh hưởng bởi CRLF/LF.
+
+### Phân loại
+
+**Environment / platform compatibility issue**
 
 ### Xử lý
-Chuẩn hóa line ending và cấu hình Git phù hợp, sau đó rebuild image không dùng cache.
+
+- Kiểm tra line endings.
+- Điều chỉnh Git/checkout để tránh CRLF phá shell scripts.
+- Rebuild image/container không dùng cache khi cần.
 
 ### Kết quả
-Mealie chạy thành công và container đạt trạng thái healthy.
 
-### Phân loại
-Environment issue, **không phải defect của Mealie API**.
+Mealie sau đó chạy healthy trên local Docker và API có thể truy cập tại port `9091`.
+
+### Báo cáo
+
+Có thể sử dụng trong phần **Khó khăn khi thiết lập môi trường** hoặc **Reproducibility**, không ghi là defect của Mealie API.
 
 ---
 
-## ENV-02 — Docker daemon / named pipe tạm thời không khả dụng
-
-**Trạng thái:** RESOLVED
+## ENV-02 — Docker daemon / named pipe không khả dụng
 
 ### Hiện tượng
-Docker command không kết nối được daemon/named pipe.
+
+Tại một thời điểm trong quá trình chuẩn bị Schemathesis POC, Docker daemon không hoạt động và Docker CLI không kết nối được tới Docker Engine/named pipe.
+
+### Ảnh hưởng
+
+- Mealie runtime không thể được xác minh.
+- Schemathesis runtime smoke test bị block.
 
 ### Xử lý
-Khởi động/khôi phục Docker Desktop và xác minh lại Docker daemon.
+
+Docker Desktop/runtime được khởi động lại và Mealie sau đó được xác minh:
+
+```text
+/api/app/about  -> HTTP 200
+/openapi.json   -> HTTP 200
+```
 
 ### Phân loại
-Local environment issue.
+
+**Environment issue**
+
+### Báo cáo
+
+Có thể nhắc trong phần troubleshooting; không phải SUT defect.
 
 ---
 
-## ENV-03 — Docker config Access Denied
-
-**Trạng thái:** RESOLVED / LOCAL
+## ENV-03 — Docker configuration Access Denied
 
 ### Hiện tượng
-Có thời điểm thao tác Docker gặp lỗi quyền truy cập cấu hình.
+
+Trong quá trình kiểm tra môi trường, cấu hình Docker tại máy local từng xuất hiện tình trạng `Access denied`.
 
 ### Phân loại
-Local permission issue, không phải SUT defect.
 
----
-
-## CFG-01 — Sử dụng sai OpenAPI URL
-
-**Trạng thái:** RESOLVED
-
-### Sai
-`/api/openapi.json`
-
-Endpoint này trả nội dung frontend HTML, không phải OpenAPI schema.
-
-### Đúng
-`/openapi.json`
-
-### Kết quả
-Đã lưu snapshot OpenAPI chính xác tại:
-
-`schema/snapshots/mealie-v3.28.0-openapi.json`
-
----
-
-## CFG-02 — Runtime báo version `develop`
-
-**Trạng thái:** DOCUMENTED
-
-### Hiện tượng
-`/api/app/about` báo runtime version là `develop` vì hệ thống được build từ source/image phát triển.
-
-### Baseline kiểm thử chính thức
-- Git tag: `v3.28.0`
-- Commit: `0552eaa4a80031b8572849cca0ed95d07f1be001`
-
-### Quyết định
-Dùng Git tag + commit SHA làm baseline có thể tái lập thay vì chỉ dựa vào runtime version string.
-
----
-
-# 4. Test Harness / Tooling Issues
-
-## TEST-01 — Process Codex không nhận `MEALIE_API_TOKEN`
-
-**Trạng thái:** RESOLVED / WORKAROUND
-
-### Hiện tượng
-Token đã tồn tại trong PowerShell hiện tại nhưng process riêng không nhìn thấy biến môi trường.
-
-### Xử lý
-Chạy test trực tiếp trong PowerShell/pytest environment đang chứa `MEALIE_API_TOKEN`.
-
-### Bảo mật
-Không lưu token vào Git và không ghi token vào evidence.
-
----
-
-## TEST-02 — Schemathesis CLI filtering không giới hạn đúng P0 như dự kiến
-
-**Trạng thái:** WORKAROUND APPLIED
-
-### Hiện tượng
-Một số thử nghiệm CLI với filter path/method vẫn chọn nhiều operation ngoài P0 và từng thực thi `POST /api/recipes`.
-
-### Xử lý
-Dùng Schemathesis Python API `.include()` và selection test để giới hạn chính xác 9 P0 operations.
+**Local environment / permissions issue**
 
 ### Ghi chú
-Chưa kết luận đây là bug của Schemathesis vì semantics của CLI filter chưa được xác minh đầy đủ.
+
+Không tự động xóa hoặc thay đổi Docker configuration chỉ để vượt lỗi. Vấn đề được tách khỏi SUT.
 
 ---
 
-## TEST-03 — Schemathesis examples phase sinh 0 case
+# 4. Configuration / Baseline Issues
 
-**Trạng thái:** DOCUMENTED
+## CFG-01 — Xác định nhầm OpenAPI endpoint
 
 ### Hiện tượng
-Chạy examples phase không thực thi test case.
 
-### Nguyên nhân quan sát được
-OpenAPI snapshot không cung cấp examples phù hợp cho campaign này.
+Ban đầu:
 
-### Phân loại
-Tool/schema limitation, không phải SUT defect.
+```text
+/api/openapi.json
+```
 
----
+không phải OpenAPI schema mong muốn và có thể trả frontend HTML.
 
-## TEST-04 — pytest không nhận `--hypothesis-max-examples=1`
+Endpoint đúng:
 
-**Trạng thái:** RESOLVED
-
-### Xử lý
-Chuyển sang cấu hình Hypothesis trực tiếp:
-
-`@settings(max_examples=1, deadline=None)`
-
----
-
-## TEST-05 — Shopping Item POST response bị giả định sai cấu trúc
-
-**Trạng thái:** RESOLVED
-
-### Hiện tượng
-P1 Shopping Item lifecycle ban đầu giả định response của POST chứa:
-
-`created["id"]`
-
-Dẫn tới `KeyError`.
-
-### Runtime response thực tế
-POST trả wrapper gồm:
-
-- `createdItems`
-- `updatedItems`
-- `deletedItems`
-
-ID của item mới nằm tại:
-
-`created["createdItems"][0]["id"]`
-
-### Xử lý
-Test harness được sửa để đọc `createdItems[0]`.
-
-### Ghi chú bổ sung
-Trong quá trình chỉnh sửa từng xuất hiện `TabError` do trộn tabs/spaces. Đây là lỗi formatting của test code, không phải defect của SUT.
-
----
-
-## TEST-06 — Recipe POST response là slug string, không phải recipe object
-
-**Trạng thái:** RESOLVED
-
-### Hiện tượng
-P1 Recipe lifecycle ban đầu giả định:
-
-`created.get("slug")`
-
-nhưng `create_response.json()` trả về một chuỗi.
-
-### Runtime response thực tế
-Ví dụ:
-
-`"k05-p1-recipe-1328bc78"`
-
-Đây là slug của recipe vừa tạo.
-
-### Xử lý
-Test harness dùng trực tiếp JSON string làm `slug`, sau đó GET resource để xác minh `slug` và `name`.
+```text
+/openapi.json
+```
 
 ### Kết quả
-Recipe lifecycle PASS sau khi sửa harness.
+
+OpenAPI snapshot hợp lệ được lưu tại:
+
+```text
+schema/snapshots/mealie-v3.28.0-openapi.json
+```
+
+Thông tin baseline:
+
+```text
+OpenAPI: 3.1.0
+Paths: 182
+Operations: 266
+```
+
+### Phân loại
+
+**Configuration / API discovery issue**
 
 ---
 
-# 5. Observations / Contract Limitations
+## CFG-02 — Runtime version hiển thị `develop`
 
-## OBS-01 — Meal Plan có validation liên trường không thể hiện đầy đủ bằng danh sách `required`
+### Hiện tượng
 
-**Trạng thái:** OBSERVED
+`/api/app/about` có thể báo runtime version:
 
-### OpenAPI schema
-`CreatePlanEntry` yêu cầu trường `date`.
+```text
+develop
+```
 
-### Runtime observation
-Các payload sau đều trả `422`:
+trong khi source đã được checkout tại release/tag:
 
-- chỉ có `date`
-- `date` + `title=""`
-- `date` + `recipeId=null`
+```text
+v3.28.0
+```
 
-Response chứa thông báo:
+và commit:
 
-`Value error, recipe_id=None or title= must be provided`
-
-Trong khi happy-path trước đó với `date` + `title` có nội dung tạo resource thành công (`201`).
-
-### Diễn giải
-Runtime áp dụng validation liên trường giữa `recipeId` và `title` mà việc chỉ nhìn vào danh sách `required` của schema không thể hiện đầy đủ.
+```text
+0552eaa4a80031b8572849cca0ed95d07f1be001
+```
 
 ### Quyết định
-Ghi nhận là **contract/schema limitation observation**, chưa nâng thành defect riêng vì API vẫn trả `422`, là status đã được OpenAPI document cho validation failure.
+
+Baseline chính thức của project được xác định bằng **Git tag + pinned commit SHA**, không dùng duy nhất runtime version string.
+
+### Phân loại
+
+**Build/version metadata observation**
 
 ---
 
-# 6. Confirmed SUT Defects
+# 5. Test Infrastructure / Methodology Issues
 
-## DEF-01 — Empty `foods` query gây HTTP 500
+## TEST-01 — Codex không nhận `MEALIE_API_TOKEN`
 
-**Trạng thái:** CONFIRMED / REPRODUCIBLE
+### Hiện tượng
+
+PowerShell xác nhận:
+
+```text
+TOKEN SET
+```
+
+nhưng tiến trình Codex trả:
+
+```text
+TOKEN MISSING
+```
+
+### Nguyên nhân thực tế quan sát được
+
+Token được đặt trong environment của PowerShell hiện tại nhưng tiến trình Codex không kế thừa environment đó.
+
+### Workaround
+
+Chạy authenticated test trực tiếp trong PowerShell chứa:
+
+```text
+MEALIE_API_TOKEN
+```
+
+Không hardcode token vào source code, README, evidence hoặc Git.
+
+### Xác minh authentication
+
+Authenticated request thủ công:
+
+```text
+GET /api/recipes -> HTTP 200
+```
+
+### Phân loại
+
+**Test infrastructure / process environment issue**
+
+---
+
+## TEST-02 — Schemathesis CLI filtering không giới hạn đúng P0 operation
+
+### Mục tiêu
+
+Chỉ chạy:
+
+```text
+GET /api/recipes
+```
+
+### Các filter đã thử
+
+Bao gồm các dạng:
+
+```text
+--include-path /api/recipes
+--include-method GET
+```
+
+và path regex.
+
+### Kết quả thực tế
+
+Schemathesis báo:
+
+```text
+Operations: 118 selected / 266 total
+```
+
+và thậm chí thực thi:
+
+```text
+POST /api/recipes
+```
+
+ngoài phạm vi P0 read-only dự kiến.
+
+Custom expression sau đó:
+
+```text
+method == "GET" and path == "/api/recipes"
+```
+
+lại chọn:
+
+```text
+0 selected / 266
+```
+
+### Workaround
+
+Python Schemathesis API được sử dụng:
+
+```python
+schema.include(path=P0_PATHS, method="GET")
+```
+
+Offline selection test xác nhận chính xác 9 P0 GET operations.
+
+Smoke test riêng cũng được pytest định danh đúng:
+
+```text
+test_p0_recipes_smoke[GET /api/recipes]
+```
+
+### Phân loại
+
+**Testing-tool/configuration issue**
+
+### Trạng thái
+
+Chưa kết luận đây là bug của Schemathesis. Cần phân biệt giữa CLI semantics, cách sử dụng filter và tool behavior.
+
+---
+
+## TEST-03 — Schemathesis `examples` phase sinh 0 test cases
+
+### Hiện tượng
+
+POC ban đầu sử dụng:
+
+```text
+--phases examples
+```
+
+Kết quả:
+
+```text
+Selected: 118/266
+Tested: 0
+No test cases were generated
+118 skipped - No examples in schema
+```
+
+### Giải thích
+
+Phase `examples` phụ thuộc vào examples có trong API schema. Schema hiện tại không cung cấp examples phù hợp cho các operation được chọn.
+
+### Quyết định
+
+Không coi empty test suite là P0 PASS. Chuyển sang generated/fuzzing test với giới hạn chặt.
+
+### Phân loại
+
+**Test design / schema limitation**
+
+---
+
+## TEST-04 — pytest không hỗ trợ `--hypothesis-max-examples`
+
+### Hiện tượng
+
+Command:
+
+```text
+--hypothesis-max-examples=1
+```
+
+trả:
+
+```text
+unrecognized arguments: --hypothesis-max-examples=1
+```
+
+### Xử lý
+
+Giới hạn số example trực tiếp trong Python test bằng Hypothesis:
+
+```python
+@settings(max_examples=1, deadline=None)
+```
+
+### Phân loại
+
+**Test tooling/configuration issue**
+
+---
+
+# 6. SUT Defect Candidates
+
+## DEF-01 — Empty `foods` query parameter causes HTTP 500
+
+### Trạng thái
+
+**Reproducible defect candidate**
 
 ### Endpoint
-`GET /api/recipes?foods=`
+
+```text
+GET /api/recipes
+```
+
+### Discovery
+
+Schemathesis P0 test sinh request GET có nhiều query parameters và nhận:
+
+```text
+HTTP 500 Internal Server Error
+```
+
+Schemathesis báo:
+
+1. Server error
+2. Undocumented HTTP status code
+
+Theo OpenAPI contract được test, operation này document:
+
+```text
+200
+422
+```
+
+### Baseline request
+
+Authenticated request không có query parameter:
+
+```text
+GET /api/recipes
+```
+
+Kết quả:
+
+```text
+HTTP 200
+```
+
+### Isolation
+
+Các empty query parameters được thử riêng:
+
+```text
+categories=       -> 200
+foods=            -> 500
+households=       -> 200
+orderBy=          -> 200
+queryFilter=      -> 200
+paginationSeed=   -> 200
+cookbook=         -> 200
+search=           -> 200
+```
+
+Failure được cô lập thành:
+
+```text
+GET /api/recipes?foods=
+```
+
+### Expected
+
+API không nên gặp unexpected server-side failure khi nhận input biên này.
+
+Theo contract hiện tại, documented responses được Schemathesis xác định là:
+
+```text
+200, 422
+```
 
 ### Actual
-HTTP `500`.
 
-### Contract
-OpenAPI document các response phù hợp của operation là `200` / `422`.
-
-### Kiểm tra cô lập
-Các empty query parameter khác được thử không tạo cùng lỗi; `foods=` là trường hợp gây 500 trong campaign đã thực hiện.
+```text
+HTTP 500 Internal Server Error
+```
 
 ### Reproducibility
-Đã tái hiện nhiều lần trong P0.
 
-### Phân loại
-- Unexpected server-side failure
-- Undocumented HTTP status
-- Schema-based/fuzz finding
+Minimal request được chạy ba lần liên tiếp:
+
+```text
+Run 1 -> HTTP 500
+Run 2 -> HTTP 500
+Run 3 -> HTTP 500
+```
+
+**Reproduction rate: 3/3**
+
+### Security
+
+Không lưu API token hoặc credential trong evidence.
+
+### Evidence
+
+Evidence Markdown:
+
+```text
+evidence/test-runs/recipe-empty-foods-500.md
+```
+
+Schemathesis JSON reports của quá trình discovery cũng được giữ trong local evidence directory nếu còn tồn tại.
 
 ### Root cause
-Chưa xác định trong phạm vi kiểm thử hiện tại.
+
+**Chưa xác định.**
+
+Không gán root cause cho tới khi kiểm tra implementation/log/backend validation tương ứng.
+
+### Giá trị đối với báo cáo
+
+Đây hiện là finding mạnh nhất của project vì thể hiện đầy đủ:
+
+```text
+Schema-Based Testing
+        ↓
+Generated boundary input
+        ↓
+Unexpected HTTP 500
+        ↓
+Manual reproduction
+        ↓
+Parameter isolation
+        ↓
+Minimal failing request
+        ↓
+3/3 reproducibility
+        ↓
+Defect candidate
+```
 
 ---
 
-## DEF-02 — `orderBy=null` trả HTTP 400 nhưng OpenAPI không document 400
+## DEF-02 — `orderBy=null` causes undocumented HTTP 400 across multiple endpoints
 
-**Trạng thái:** CONFIRMED / REPRODUCIBLE
+### Trạng thái
 
-### Các endpoint đã tái hiện
-- `GET /api/households/shopping/lists?orderBy=null`
-- `GET /api/households/shopping/items?orderBy=null`
-- `GET /api/households/mealplans?orderBy=null`
+**Reproducible API contract defect candidate**
 
-### Actual
-HTTP `400`.
+### Affected endpoints
 
-Response điển hình:
+```text
+GET /api/households/shopping/lists
+GET /api/households/shopping/items
+GET /api/households/mealplans
+```
 
-`{"detail":"Invalid order_by statement \"null\": \"null\" is invalid"}`
+### Discovery
 
-### Control
-Khi bỏ `orderBy`, các collection endpoint tương ứng trả `200`.
+Schemathesis schema-based fuzz testing sinh request có:
 
-### Contract
-Schema cho phép `orderBy` ở dạng `string | null`, trong khi operation document response `200` / `422`, không document `400`.
+```text
+?orderBy=null
+```
 
-### Phân loại
-- API contract inconsistency
-- Undocumented HTTP status
+và phát hiện:
 
-### Quyết định grouping
-Ba endpoint có cùng pattern được ghi thành **một defect family DEF-02**.
+```text
+Undocumented HTTP status code
+
+Received: 400
+Documented: 200, 422
+```
+
+Response của server:
+
+```text
+Invalid order_by statement "null": "null" is invalid
+```
+
+Schemathesis reproducer ban đầu còn chứa:
+
+```text
+x-schemathesis-unknown-property=42
+```
+
+nên request sau đó được thu nhỏ thủ công để loại parameter này khỏi nguyên nhân.
+
+### Manual reproduction
+
+Các request tối thiểu sau vẫn trả HTTP 400:
+
+```text
+GET /api/households/shopping/lists?orderBy=null  -> 400
+GET /api/households/shopping/items?orderBy=null  -> 400
+GET /api/households/mealplans?orderBy=null        -> 400
+```
+
+### Control requests
+
+Không truyền `orderBy`:
+
+```text
+GET /api/households/shopping/lists  -> 200
+GET /api/households/shopping/items  -> 200
+GET /api/households/mealplans        -> 200
+```
+
+Do đó pattern quan sát được:
+
+```text
+normal request   -> 200
+?orderBy=null    -> 400
+```
+
+trên cả ba endpoint.
+
+### OpenAPI contract
+
+Snapshot OpenAPI khai báo `orderBy` giống nhau trên cả ba operation:
+
+```json
+{
+  "name": "orderBy",
+  "in": "query",
+  "required": false,
+  "schema": {
+    "anyOf": [
+      {
+        "type": "string"
+      },
+      {
+        "type": "null"
+      }
+    ],
+    "title": "Orderby"
+  }
+}
+```
+
+Documented responses:
+
+```text
+200
+422
+```
+
+Không có response `400`.
+
+### Contract analysis
+
+Query string:
+
+```text
+?orderBy=null
+```
+
+truyền chuỗi `"null"` qua HTTP. Chuỗi này phù hợp với nhánh:
+
+```json
+{"type": "string"}
+```
+
+của schema hiện tại, vì schema không khai báo `enum`, `pattern`, hoặc constraint khác để loại giá trị `"null"`.
+
+Implementation lại từ chối giá trị này và trả:
+
+```text
+HTTP 400 Bad Request
+```
+
+trong khi `400` không được OpenAPI contract document.
+
+### Finding
+
+Có sự không đồng nhất quan sát được giữa OpenAPI contract và runtime behavior:
+
+1. Schema cho phép Schemathesis sinh một string như `"null"`.
+2. Runtime từ chối giá trị đó.
+3. Runtime sử dụng HTTP 400.
+4. OpenAPI chỉ document 200 và 422.
+
+### Classification
+
+**API contract inconsistency / undocumented error response**
+
+Ba endpoint hiện được gom thành **một defect family**, không tính thành ba defect độc lập, vì chúng thể hiện cùng pattern `orderBy` và cùng response behavior.
+
+### Security
+
+Không credential hoặc bearer token nào được lưu trong evidence.
+
+### Root cause
+
+**Chưa xác định.**
+
+Có khả năng các endpoint dùng chung sorting/order-by handling, nhưng chưa kiểm tra source/log nên không kết luận đây là root cause.
+
+### Value for K05
+
+Finding này minh họa Schema-Based API Testing phát hiện contract mismatch mà không cần server crash:
+
+```text
+OpenAPI
+   ↓
+Schemathesis generates orderBy input
+   ↓
+Runtime returns HTTP 400
+   ↓
+Status-code conformance oracle fails
+   ↓
+Manual minimization
+   ↓
+Control 200 vs orderBy=null 400
+   ↓
+Contract mismatch reproduced on 3 endpoints
+```
 
 ---
 
-## DEF-03 — Nonexistent detail resource trả 404 nhưng OpenAPI không document 404
+## DEF-03 — Undocumented HTTP 404 for nonexistent detail resources
 
-**Trạng thái:** CONFIRMED / REPRODUCIBLE
+### Trạng thái
 
-### Endpoint đã quan sát
-- `GET /api/recipes/0`
-- `GET /api/households/mealplans/0`
+**Reproducible API contract defect candidate**
 
-### Actual
-HTTP `404`.
+### Affected endpoints
 
-### Contract
-Các operation tương ứng chỉ document `200` / `422`.
+```text
+GET /api/recipes/{slug}
+GET /api/households/mealplans/{item_id}
+```
 
-### Diễn giải
-`404 Not Found` là hành vi runtime hợp lý khi resource không tồn tại. Defect ở đây **không phải việc server trả 404**, mà là OpenAPI contract không khai báo response 404 mà client thực tế có thể nhận.
+### Discovery
 
-### Phân loại
-- API documentation / contract mismatch
-- Undocumented response status
+Trong P0 detail schema-based campaign, Schemathesis sinh path parameter `0` cho hai operation và nhận:
 
-### Quyết định grouping
-Các detail endpoint có cùng pattern được nhóm thành DEF-03.
+```text
+GET /api/recipes/0
+→ HTTP 404
+
+GET /api/households/mealplans/0
+→ HTTP 404
+```
+
+Schemathesis báo:
+
+```text
+Undocumented HTTP status code
+
+Received: 404
+Documented: 200, 422
+```
+
+### Runtime responses
+
+Recipe detail:
+
+```json
+{"detail":{"message":"No Entry Found","error":true,"exception":null}}
+```
+
+Meal-plan detail:
+
+```json
+{"detail":{"message":"Not found.","error":true,"exception":null}}
+```
+
+### Manual reproduction
+
+Các request tối giản, không chứa header `accept-language: {}` do Schemathesis sinh, vẫn trả:
+
+```text
+http://localhost:9091/api/recipes/0
+→ HTTP 404
+
+http://localhost:9091/api/households/mealplans/0
+→ HTTP 404
+```
+
+Điều này loại header Schemathesis khỏi nguyên nhân của response 404.
+
+### Expected / contract observation
+
+HTTP 404 là hành vi runtime hợp lý khi resource được yêu cầu không tồn tại.
+
+Finding không phải là việc server trả `404`; finding là **OpenAPI contract không document response 404 mà implementation thực tế có thể trả**.
+
+OpenAPI documented responses:
+
+```text
+200
+422
+```
+
+### Classification
+
+**API contract / documentation inconsistency — undocumented 404 response**
+
+Hai endpoint được gom thành một defect family vì cùng thể hiện một loại contract mismatch.
+
+### Security
+
+Không credential hoặc bearer token nào được lưu trong evidence.
+
+### Root cause
+
+**Chưa xác định.**
+
+Không suy đoán root cause trước khi kiểm tra implementation hoặc schema-generation logic.
+
+### Value for K05
+
+```text
+OpenAPI schema
+      ↓
+Schemathesis generates nonexistent identifier
+      ↓
+Runtime returns 404
+      ↓
+Status-code conformance oracle fails
+      ↓
+Manual minimal reproduction
+      ↓
+404 confirmed without generated auxiliary header
+      ↓
+OpenAPI/runtime contract mismatch
+```
 
 ---
 
-## DEF-04 — Empty recipe name gây HTTP 500 / `AssertionError`
+## DEF-04 — Empty recipe name produced HTTP 500 / AssertionError
 
-**Trạng thái:** CONFIRMED / REPRODUCIBLE
+### Trạng thái
 
-### Endpoint
-`POST /api/recipes`
+**Potential defect candidate — requires controlled triage**
 
-### Input
+### Discovery
+
+Trong lúc Schemathesis CLI filtering chưa hoạt động đúng như dự kiến, tool ngoài ý muốn thực thi:
+
+```text
+POST /api/recipes
+```
+
+với body:
+
 ```json
 {
   "name": ""
 }
 ```
 
-### Contract
-`CreateRecipe` yêu cầu `name` kiểu string.
+### Actual
 
-POST `/api/recipes` document response:
+Server trả:
 
-- `201`
-- `422`
+```text
+HTTP 500 Internal Server Error
+```
 
-### Discovery ban đầu
-Finding xuất hiện ngoài ý muốn trong quá trình Schemathesis CLI filtering, khi request `{"name": ""}` được gửi và server trả `500`.
+Response từng chứa thông tin:
 
-Ban đầu defect được giữ ở trạng thái candidate để tránh kết luận từ một lần chạy ngoài P0.
+```text
+exception: AssertionError
+```
 
-### Controlled reproduction trong P1
-Đã chạy test riêng ba lần với cùng payload:
+Schemathesis báo hai failure:
 
-| Attempt | Status | Response |
-|---|---:|---|
-| 1 | 500 | `Unknown Error`, `AssertionError` |
-| 2 | 500 | `Unknown Error`, `AssertionError` |
-| 3 | 500 | `Unknown Error`, `AssertionError` |
+1. Server error
+2. Undocumented HTTP status code
+
+### Contract observed by Schemathesis
+
+Documented responses:
+
+```text
+201
+422
+```
+
+### Important limitation
+
+Finding này được phát hiện khi P0 campaign dự kiến read-only nhưng CLI filtering chọn sai phạm vi và chạy POST.
+
+Vì vậy finding **không được coi là confirmed defect** chỉ dựa trên lần discovery đó.
+
+### Next step
+
+Cần triage có kiểm soát:
+
+1. Xác nhận request contract.
+2. Xác nhận request body tối thiểu hợp lệ/không hợp lệ.
+3. Tái hiện trong môi trường QA.
+4. Kiểm tra có tạo resource ngoài ý muốn hay không.
+5. Cleanup nếu cần.
+6. Lặp lại để xác định reproducibility.
+7. Chỉ sau đó mới nâng trạng thái finding.
+
+---
+
+# 7. Các finding KHÔNG được coi là SUT defect
+
+Các vấn đề sau không được đưa vào bảng defect của Mealie:
+
+- Docker daemon không chạy.
+- Docker permission/configuration trên máy local.
+- CRLF/LF khi checkout/build trên Windows.
+- Codex không kế thừa environment variable.
+- pytest không hỗ trợ một CLI argument.
+- Schemathesis examples phase không sinh case khi schema không có examples.
+- Việc chọn sai OpenAPI URL trong quá trình setup.
+
+Chúng vẫn có giá trị trong các phần:
+
+- Environment setup
+- Troubleshooting
+- Testing limitations
+- Lessons learned
+- Reproducibility
+
+---
+
+# 8. Defect Status Definitions
+
+| Trạng thái | Ý nghĩa |
+|---|---|
+| Observed | Đã quan sát thấy hiện tượng nhưng chưa tái hiện đủ |
+| Potential defect candidate | Có dấu hiệu lỗi SUT nhưng cần triage |
+| Reproducible defect candidate | Đã có minimal/controlled reproduction ổn định |
+| Confirmed defect | Có đủ evidence và phân tích để kết luận implementation/contract có defect |
+| Resolved | Đã có fix và retest PASS |
+| Not a defect | Triage xác định nguyên nhân không thuộc SUT |
+
+---
+
+# 9. Quy trình cập nhật finding mới
+
+Mỗi finding mới cần ghi:
+
+```text
+ID
+Category
+Date/phase discovered
+SUT baseline
+Endpoint/component
+Preconditions
+Input/request
+Expected result
+Actual result
+Reproduction steps
+Reproduction rate
+Evidence
+Severity/impact (chỉ khi có căn cứ)
+Classification
+Root cause (nếu đã xác định)
+Status
+Retest result
+```
+
+Không tự suy đoán root cause hoặc severity nếu chưa có evidence.
+
+---
+
+# 10. Current Defect Summary
+
+Tại thời điểm tạo tài liệu:
+
+### Reproducible SUT defect candidates
+
+**DEF-01**
+
+```text
+GET /api/recipes?foods=
+→ HTTP 500
+→ Reproduced 3/3
+```
+
+### Reproducible API contract defect candidates
+
+**DEF-02**
+
+```text
+GET /api/households/shopping/lists?orderBy=null  -> 400
+GET /api/households/shopping/items?orderBy=null  -> 400
+GET /api/households/mealplans?orderBy=null        -> 400
+
+Control without orderBy                           -> 200
+OpenAPI documented responses                     -> 200, 422
+```
+
+Classification: API contract inconsistency / undocumented HTTP 400 response.
+
+### Reproducible API contract defect candidates
+
+**DEF-03**
+
+```text
+GET /api/recipes/0                         -> 404
+GET /api/households/mealplans/0           -> 404
+OpenAPI documented responses              -> 200, 422
+```
+
+Classification: API contract / documentation inconsistency — undocumented 404 response.
+
+### SUT findings requiring further triage
+
+**DEF-04**
+
+```text
+POST /api/recipes
+{"name": ""}
+→ HTTP 500 / AssertionError
+```
+
+### Environment / configuration / tooling issues
+
+```text
+ENV-01
+ENV-02
+ENV-03
+CFG-01
+CFG-02
+TEST-01
+TEST-02
+TEST-03
+TEST-04
+```
+
+---
+
+## Maintenance Note
+
+Tài liệu này là **living issue/defect log** của project.
+
+Khi phát hiện lỗi mới:
+
+1. Không ghi đè finding cũ.
+2. Cấp ID mới theo nhóm phù hợp.
+3. Thêm evidence và reproduction.
+4. Cập nhật trạng thái sau triage/retest.
+5. Giữ nguyên lịch sử finding để phục vụ báo cáo cuối kỳ.
+
+---
+
+# 11. Phase 3 P0 — K05 Checkpoint Summary
+
+## Scope exercised
+
+P0 contained **9 authenticated read-only GET operations**:
+
+```text
+GET /api/recipes
+GET /api/recipes/{slug}
+GET /api/households/shopping/lists
+GET /api/households/shopping/lists/{item_id}
+GET /api/households/shopping/items
+GET /api/households/shopping/items/{item_id}
+GET /api/households/mealplans
+GET /api/households/mealplans/{item_id}
+GET /api/households/mealplans/today
+```
+
+**Coverage checkpoint: 9/9 P0 operations exercised.**
+
+## K05 method used
+
+```text
+Saved OpenAPI 3.1.0 snapshot
+        ↓
+Schemathesis 4.28.0
+        ↓
+Schema-derived request generation
+        ↓
+Authenticated local GET requests
+        ↓
+Oracles:
+- not_a_server_error
+- status_code_conformance
+- response_schema_conformance
+        ↓
+Failure reproduction and minimization
+        ↓
+Defect-family classification
+```
+
+Python Schemathesis API filtering was used for the controlled P0 campaign because earlier CLI filtering did not restrict execution as expected.
+
+## Collection campaign
+
+Five collection/read operations were exercised.
+
+Observed pytest result:
+
+```text
+4 failed, 1 passed
+```
+
+Failures represented two unique defect families rather than four independent defects:
+
+- **DEF-01:** `/api/recipes?foods=` -> HTTP 500.
+- **DEF-02:** `orderBy=null` -> undocumented HTTP 400 across three endpoints.
+
+`GET /api/households/mealplans/today` completed the bounded campaign without a detected failure.
+
+## Detail campaign
+
+Four detail operations were exercised.
+
+Observed pytest result:
+
+```text
+2 failed, 2 passed
+```
+
+The two failures represented one shared defect family:
+
+- **DEF-03:** nonexistent detail resource -> HTTP 404 while OpenAPI documents only 200/422.
+
+The other two detail operations completed this bounded campaign without a detected failure.
+
+## Confirmed P0 findings
+
+### DEF-01 — Server-side failure
+
+```text
+GET /api/recipes?foods=
+→ HTTP 500
+→ OpenAPI: 200, 422
+→ reproduced 3/3
+```
+
+Classification:
+
+```text
+Unexpected server-side failure + undocumented status
+```
+
+### DEF-02 — Undocumented HTTP 400
+
+Affected:
+
+```text
+GET /api/households/shopping/lists?orderBy=null
+GET /api/households/shopping/items?orderBy=null
+GET /api/households/mealplans?orderBy=null
+```
+
+Control requests without `orderBy` returned HTTP 200.
+
+Runtime:
+
+```text
+?orderBy=null → HTTP 400
+```
+
+OpenAPI:
+
+```text
+orderBy: string | null
+responses: 200, 422
+```
+
+Classification:
+
+```text
+API contract inconsistency / undocumented error response
+```
+
+### DEF-03 — Undocumented HTTP 404
+
+Affected:
+
+```text
+GET /api/recipes/0
+GET /api/households/mealplans/0
+```
+
+Runtime:
+
+```text
+HTTP 404
+```
+
+OpenAPI:
+
+```text
+200, 422
+```
+
+Classification:
+
+```text
+API contract / documentation inconsistency
+```
+
+The runtime 404 itself is reasonable for a nonexistent resource; the finding is that the contract does not document it.
+
+## Out-of-scope finding retained for later triage
+
+**DEF-04**
+
+```text
+POST /api/recipes
+{"name": ""}
+→ HTTP 500 / AssertionError
+```
+
+This was discovered accidentally while CLI filtering executed a POST outside the intended P0 read-only scope. It remains a potential defect candidate and is not counted as a confirmed P0 defect family.
+
+## Phase 3 P0 result
+
+```text
+P0 operations selected:                 9
+P0 operations exercised:                9
+Coverage of selected P0 operations:     9/9
+Reproducible P0 defect families:        3
+Out-of-scope candidates retained:       1
+Server-error families:                  1
+Contract/status mismatch families:      2
+```
+
+A pytest `FAILED` result is not interpreted as failure of the K05 POC itself. The testing harness successfully generated schema-derived inputs, exercised the SUT, applied contract/invariant checks, and exposed reproducible SUT/API-contract findings.
+
+### Phase status
+
+**Phase 3 P0 / K05 proof of concept: COMPLETE for the bounded selected scope.**
+
+This does **not** mean the whole Mealie API has been fully tested. It means all 9 operations selected for the P0 read-only campaign were exercised and the resulting failure families were triaged.
+
+## Gate before P1
+
+Before opening P1 controlled write/lifecycle testing:
+
+1. Preserve the P0 tests and evidence.
+2. Update `tests/README.md` so it no longer recommends the misleading CLI filtering path.
+3. Keep credentials out of Git.
+4. Run `pip check`, selection test, and `git diff --check`.
+5. Review `git status` and commit the coherent Phase 3 P0 artifacts.
+6. Define P1 cleanup/rollback rules before executing POST/PUT/PATCH/DELETE operations.
+
+---
+
+# 12. Phase 3 P1 — Controlled Lifecycle / Write Testing
+
+## 12.1 P1 Scope
+
+P1 mở rộng từ P0 read-only sang controlled write/lifecycle testing.
+
+Các resource được kiểm thử:
+
+- Shopping List
+- Shopping Item
+- Meal Plan
+- Recipe
+
+Nguyên tắc an toàn:
+
+- Chỉ tạo/sửa/xóa resource do test tạo.
+- Dùng unique marker cho dữ liệu tạm.
+- Cleanup resource sau test.
+- Child resource được cleanup trước parent khi cần.
+- Không broad-fuzz write endpoints.
+- Không commit API token hoặc credential.
+
+---
+
+## 12.2 P1-A — Shopping List
+
+### Lifecycle
+
+Luồng kiểm thử:
+
+```text
+POST create
+    ↓
+GET
+    ↓
+PUT update
+    ↓
+GET verify
+    ↓
+DELETE
+    ↓
+GET after delete
+```
 
 Kết quả:
 
-`[500, 500, 500]`
+```text
+CREATE             PASS
+READ               PASS
+UPDATE             PASS
+VERIFY UPDATE      PASS
+DELETE             PASS
+GET after delete   404
+```
 
-### Reproducibility
-**3/3 trong controlled reproduction.**
+Runtime trả `404` sau khi resource đã bị xóa.
 
-### Actual response
+### Boundary Testing
+
+Các payload:
+
+```text
+{}
+{"name": null}
+{"name": ""}
+```
+
+Kết quả:
+
+```text
+3 passed
+```
+
+Không phát hiện SUT defect mới.
+
+---
+
+## 12.3 P1-B — Shopping Item
+
+### Lifecycle
+
+Test tạo Shopping List tạm làm parent trước khi tạo Shopping Item.
+
+Luồng:
+
+```text
+Create parent Shopping List
+        ↓
+Create Shopping Item
+        ↓
+GET Item
+        ↓
+PUT Item
+        ↓
+GET verify
+        ↓
+DELETE Item
+        ↓
+GET after delete
+        ↓
+DELETE parent
+```
+
+Kết quả:
+
+```text
+1 passed
+```
+
+### Boundary Testing
+
+Các nhóm input:
+
+- minimal valid
+- nullable optional fields
+- zero quantity
+- negative quantity
+- missing `shoppingListId`
+- invalid UUID
+
+Kết quả campaign:
+
+```text
+1 passed
+```
+
+Các response nhận được nằm trong documented response set `201/422`.
+
+Không phát hiện SUT defect mới.
+
+---
+
+## TEST-05 — Shopping Item POST response shape assumption
+
+### Trạng thái
+
+**Resolved**
+
+### Hiện tượng
+
+Test harness ban đầu giả định:
+
+```python
+created["id"]
+```
+
+Nhưng POST Shopping Item thực tế trả wrapper:
+
+```json
+{
+  "createdItems": [],
+  "updatedItems": [],
+  "deletedItems": []
+}
+```
+
+Resource mới nằm tại:
+
+```python
+created["createdItems"][0]["id"]
+```
+
+### Xử lý
+
+Test harness được sửa theo runtime response thực tế.
+
+Đây là **test harness issue**, không phải defect của Mealie.
+
+---
+
+## 12.4 P1-C — Meal Plan
+
+### Lifecycle
+
+`UpdatePlanEntry` yêu cầu:
+
+```text
+date
+id
+groupId
+userId
+```
+
+Test không tự tạo các ID này mà lấy server representation từ GET trước khi PUT.
+
+Kết quả:
+
+```text
+POST create        → 201
+GET                → 200
+PUT update         → 200
+GET verify         → 200
+DELETE             → 200
+GET after delete   → 404
+```
+
+Final result:
+
+```text
+1 passed
+```
+
+### Boundary Testing
+
+| Case | Actual Status |
+|---|---:|
+| minimal_valid | 422 |
+| empty_title | 422 |
+| null_recipe_id | 422 |
+| missing_required_date | 422 |
+| invalid_date_format | 422 |
+| invalid_recipe_uuid | 422 |
+| invalid_entry_type | 422 |
+
+Final result:
+
+```text
+1 passed
+```
+
+Không có undocumented status trong campaign này.
+
+---
+
+## OBS-01 — Meal Plan cross-field validation
+
+### Trạng thái
+
+**Observed**
+
+OpenAPI `CreatePlanEntry` thể hiện `date` là required field.
+
+Tuy nhiên runtime còn áp dụng validation liên trường liên quan tới `recipeId` và `title`.
+
+Ví dụ request chỉ chứa `date` trả:
+
+```text
+HTTP 422
+```
+
+với message:
+
+```text
+Value error, `recipe_id=None` or `title=` must be provided
+```
+
+Trong khi happy-path có `date` và `title` có nội dung tạo resource thành công.
+
+### Classification
+
+Contract/schema limitation observation.
+
+Không tính thành SUT defect mới vì runtime trả `422`, thuộc documented response set.
+
+---
+
+## 12.5 P1-D — Recipe
+
+### Happy-path Lifecycle
+
+Payload hợp lệ:
+
+```json
+{
+  "name": "K05 P1 Recipe <unique>"
+}
+```
+
+Kết quả:
+
+```text
+POST             → 201
+GET by slug      → 200
+DELETE           → 200
+GET after delete → 404
+```
+
+Final result:
+
+```text
+1 passed
+```
+
+---
+
+## TEST-06 — Recipe POST returns slug string
+
+### Trạng thái
+
+**Resolved**
+
+Test harness ban đầu giả định POST `/api/recipes` trả recipe object.
+
+Runtime thực tế trả JSON string chứa slug, ví dụ:
+
+```text
+"k05-p1-recipe-1328bc78"
+```
+
+Test được sửa để dùng string này làm slug và GET resource để xác minh `name`.
+
+Đây là **test harness issue**, không phải SUT defect.
+
+---
+
+# 13. DEF-04 — Controlled Reproduction Result
+
+## Endpoint
+
+```text
+POST /api/recipes
+```
+
+## Payload
+
+```json
+{
+  "name": ""
+}
+```
+
+## OpenAPI Contract
+
+Documented responses:
+
+```text
+201
+422
+```
+
+## Controlled Reproduction
+
+DEF-04 được chạy riêng 3 lần trong P1:
+
+```text
+Attempt 1 → HTTP 500
+Attempt 2 → HTTP 500
+Attempt 3 → HTTP 500
+```
+
+Reproduction result:
+
+```text
+[500, 500, 500]
+```
+
+Response:
+
 ```json
 {
   "detail": {
@@ -404,177 +1575,126 @@ Kết quả:
 }
 ```
 
-### Expected contract behavior
-Theo responses được OpenAPI document, request phải dẫn tới một status thuộc contract hiện có, ví dụ validation failure `422`, hoặc contract phải document behavior khác. HTTP `500` hiện tại nằm ngoài response contract đã công bố.
+## Reproducibility
 
-### Phân loại
+```text
+3/3
+```
+
+## Updated Status
+
+**CONFIRMED / REPRODUCIBLE**
+
+DEF-04 không còn chỉ là potential candidate.
+
+## Classification
+
 - Unexpected server-side failure
 - Undocumented HTTP status
 - Input-validation robustness defect
 - Schema-based/fuzz finding
 
-### Test behavior
-`test_p1_recipe_empty_name.py` **FAILED có chủ đích** vì assertion yêu cầu status thuộc `{201, 422}` nhưng server trả `500`.
+## Test Result Interpretation
 
-Không đổi assertion thành `500` chỉ để test xanh, vì failure này là regression/evidence cho defect.
+`test_p1_recipe_empty_name.py` intentionally fails because its contract oracle requires:
 
-### Root cause
-Chưa thực hiện source-level RCA. Runtime chỉ cho thấy exception `AssertionError`.
+```text
+201 or 422
+```
 
----
+while the SUT returns:
 
-# 7. Phase 3 P0 Checkpoint
+```text
+500
+```
 
-## P0 scope
+Do not change the assertion to expect `500` merely to make the suite pass.
 
-9 authenticated GET operations:
+The failing test is retained as regression/evidence for DEF-04.
 
-1. `/api/recipes`
-2. `/api/recipes/{slug}`
-3. `/api/households/shopping/lists`
-4. `/api/households/shopping/lists/{item_id}`
-5. `/api/households/shopping/items`
-6. `/api/households/shopping/items/{item_id}`
-7. `/api/households/mealplans`
-8. `/api/households/mealplans/{item_id}`
-9. `/api/households/mealplans/today`
+## Root Cause
 
-### Coverage
-Selected: **9**
+Source-level root cause has not been established.
 
-Exercised: **9/9**
+Runtime evidence exposes:
 
-### P0 confirmed defect families
-- DEF-01
-- DEF-02
-- DEF-03
+```text
+AssertionError
+```
 
-### P0 out-of-scope candidate
-- DEF-04, sau đó được controlled reproduction và xác nhận trong P1.
+No further root-cause claim is made without source/log analysis.
 
 ---
 
-# 8. Phase 3 P1 Checkpoint
+# 14. P1 Final Validation
 
-## P1-A — Shopping List
+Normal P1 regression suite:
 
-### Lifecycle
-- POST create → PASS
-- GET → PASS
-- PUT update → PASS
-- GET verify → PASS
-- DELETE → PASS
-- GET after delete → runtime 404
+```text
+9 passed
+```
 
-### Boundary
-Các payload `{}`, `name=null`, `name=""` đều nằm trong behavior phù hợp với contract quan sát được.
+DEF-04 regression:
 
-### New defects
-0
+```text
+Attempt 1 → 500
+Attempt 2 → 500
+Attempt 3 → 500
 
----
+Expected defect-detection result:
+1 failed
+```
 
-## P1-B — Shopping Item
+Git validation:
 
-### Lifecycle
-- Tạo parent shopping list tạm
-- POST item → PASS
-- GET → PASS
-- PUT → PASS
-- GET verify → PASS
-- DELETE item → PASS
-- GET after delete → 404
-- Cleanup parent → hoàn tất
+```text
+git diff --check → PASS
+```
 
-### Boundary
-Campaign PASS theo contract responses `201/422`.
+Safety:
 
-### Harness correction
-TEST-05: POST response dùng `createdItems[]`.
-
-### New defects
-0
+```text
+Temporary resources cleaned up
+No token committed
+No credential committed
+No uncontrolled broad write fuzzing
+```
 
 ---
 
-## P1-C — Meal Plan
+# 15. Defect Status After P1
 
-### Lifecycle
-- POST → 201
-- GET → 200
-- PUT → 200
-- GET verify → 200
-- DELETE → 200
-- GET after delete → 404
+| ID | Finding | Status |
+|---|---|---|
+| DEF-01 | `GET /api/recipes?foods=` → HTTP 500 | Reproducible |
+| DEF-02 | `orderBy=null` → undocumented HTTP 400 | Reproducible |
+| DEF-03 | nonexistent detail resource → undocumented HTTP 404 | Reproducible |
+| DEF-04 | `POST /api/recipes {"name": ""}` → HTTP 500 / AssertionError | Confirmed / Reproducible |
 
-Result: PASS.
+### P1 Result
 
-### Boundary
-7 boundary cases đã thực thi; tất cả trả `422`, nằm trong documented response set.
+```text
+Shopping List lifecycle/boundary   PASS
+Shopping Item lifecycle/boundary   PASS
+Meal Plan lifecycle/boundary       PASS
+Recipe happy-path lifecycle        PASS
+DEF-04 controlled reproduction     500 / 500 / 500
+Normal P1 regression               9 passed
+```
 
-Quan sát quan trọng: runtime có cross-field validation giữa `recipeId` và `title` → OBS-01.
-
-### New defects
-0
-
----
-
-## P1-D — Recipe
-
-### Happy-path lifecycle
-- POST valid name → 201
-- POST response → slug string
-- GET by slug → 200
-- DELETE → 200
-- GET after delete → 404
-
-Result: PASS sau khi sửa TEST-06.
-
-### DEF-04 reproduction
-`POST /api/recipes` với `{"name": ""}`:
-
-- Attempt 1 → 500
-- Attempt 2 → 500
-- Attempt 3 → 500
-
-Result: DEF-04 confirmed/reproducible.
+**Phase 3 P1 controlled lifecycle/write testing: COMPLETE.**
 
 ---
 
-# 9. Tổng hợp defect hiện tại
+## Maintenance Note — P1
 
-| ID | Mô tả ngắn | Loại | Trạng thái |
-|---|---|---|---|
-| DEF-01 | `foods=` gây HTTP 500 | Server failure / contract | CONFIRMED |
-| DEF-02 | `orderBy=null` gây undocumented 400 | Contract mismatch | CONFIRMED |
-| DEF-03 | Missing resource trả undocumented 404 | Documentation / contract | CONFIRMED |
-| DEF-04 | Recipe `name=""` gây HTTP 500 + AssertionError | Validation / server failure | CONFIRMED |
+Defect log này tiếp tục là living document.
 
-**Tổng confirmed defect families hiện tại: 4.**
+Các phase tiếp theo phải:
 
----
-
-# 10. Tổng hợp non-SUT issues
-
-| Nhóm | IDs |
-|---|---|
-| Environment | ENV-01, ENV-02, ENV-03 |
-| Configuration | CFG-01, CFG-02 |
-| Test/tooling | TEST-01, TEST-02, TEST-03, TEST-04, TEST-05, TEST-06 |
-| Observation | OBS-01 |
-
-Các mục trên không được tính vào số defect của Mealie.
-
----
-
-# 11. Nguyên tắc tiếp tục cập nhật
-
-Tài liệu này là **living defect log**. Ở các phase tiếp theo:
-
-1. Mỗi finding mới phải được phân biệt rõ giữa environment/tooling và SUT.
-2. Không nâng candidate thành confirmed chỉ từ một failure chưa triage.
-3. Với destructive/write test, chỉ thao tác resource do test tạo và phải cleanup.
-4. Không commit API token, password hoặc secret.
-5. Giữ reproducer tối thiểu cho defect đã xác nhận.
-6. Không sửa regression assertion để “làm xanh” một defect đang tồn tại.
-7. Khi defect được fix ở phiên bản SUT khác, bổ sung baseline mới và kết quả retest thay vì xóa lịch sử cũ.
+1. Giữ lại evidence P0 và P1.
+2. Không ghi đè lịch sử finding.
+3. Thêm trạng thái retest nếu SUT baseline thay đổi.
+4. Phân biệt SUT defect với environment/tooling issue.
+5. Không suy đoán root cause nếu chưa có source/log evidence.
+6. Giữ reproducer tối thiểu cho defect đã xác nhận.
