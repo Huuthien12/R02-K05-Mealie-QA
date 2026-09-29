@@ -1,0 +1,9 @@
+﻿.venv/
+.schemathesis/
+
+tests/.env
+
+__pycache__/
+*.pyc
+
+evidence/test-runs/
