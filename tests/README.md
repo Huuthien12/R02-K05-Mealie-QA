@@ -36,18 +36,18 @@ The offline selection check exercises the installed Schemathesis API without sen
 .\.venv\Scripts\python.exe -m pytest tests/schemathesis/test_p0_selection.py -q --capture=no
 ```
 
-## One-operation smoke command
+## Safe runtime commands
 
-Provide `MEALIE_API_TOKEN` only through the current shell or another ignored local configuration; do not put it in a command history, a tracked file, or this repository.
+Provide `MEALIE_API_TOKEN` only through the current shell or another ignored local configuration. Use the committed pytest selections below rather than the historical Schemathesis CLI filtering path; the selections hard-code the intended GET-only P0 scope.
 
 ```powershell
 $env:MEALIE_BASE_URL = 'http://localhost:9091'
-New-Item -ItemType Directory -Force evidence/test-runs | Out-Null
-.\.venv\Scripts\schemathesis.exe run schema/snapshots/mealie-v3.28.0-openapi.json --url $env:MEALIE_BASE_URL --include-path /api/recipes --include-method GET --phases examples --max-examples 1 --checks not_a_server_error,status_code_conformance,response_schema_conformance --max-failures 1 --request-timeout 10 --rate-limit 10/m --header "Authorization: Bearer $env:MEALIE_API_TOKEN" --report json --report-dir evidence/test-runs
+$env:MEALIE_API_TOKEN = '<YOUR_LOCAL_QA_TOKEN>'
+.\.venv\Scripts\python.exe -m pytest tests/schemathesis/test_p0_smoke.py tests/schemathesis/test_p0_collections.py tests/schemathesis/test_p0_details.py -q
 ```
 
-This verified CLI syntax limits the first POC to `GET /api/recipes`, uses the `examples` phase and at most one generated case, sends a bearer token only from the environment, and writes a sanitized Schemathesis JSON report to an ignored directory. Repeat the same command with one P0 path at a time only after the smoke is stable.
+For P1 commands, known intentional failures, cleanup rules, and result interpretation, use [the reproducibility guide](../docs/reproducibility/REPRODUCIBILITY.md).
 
 ## Current execution status
 
-The schema load check passes locally. Runtime execution is blocked until Docker/Mealie is restored at `localhost:9091` and a local token is supplied. No unauthenticated request is sent as a fallback.
+The bounded P0 campaign is complete in retained Phase 3 evidence: all 9 selected operations were exercised and DEF-01 through DEF-03 were triaged. P1 controlled lifecycle testing is also complete; the normal suite recorded `9 passed`, while `test_p1_recipe_empty_name.py` is an intentional DEF-04 regression failure. A new runtime replay still requires a local token; no unauthenticated fallback is used.

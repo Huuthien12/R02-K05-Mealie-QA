@@ -278,11 +278,10 @@ Các thư mục dành cho evidence, reports hoặc defect artifacts có thể đ
 | Phase 2 | Test Scenarios | ✅ Completed |
 | Phase 3A | Schemathesis environment | ✅ Prepared |
 | Phase 3A | Offline P0 operation selection | ✅ Passed |
-| Phase 3A | Runtime P0 smoke test | 🔄 In Progress |
-| Phase 3B | Controlled P1 lifecycle testing | ⏳ Planned |
-| Phase 4 | Extended Automation & Execution | ⏳ Planned |
-| Phase 4 | Failure Triage / Defect Analysis | ⏳ Planned |
-| Phase 5 | Reproducibility | ⏳ Planned |
+| Phase 3A | Runtime P0 smoke test | ✅ Completed |
+| Phase 3B | Controlled P1 lifecycle testing | ✅ Completed |
+| Phase 4 | Failure Triage / Defect Analysis | ✅ Completed |
+| Phase 5 | Reproducibility & result consolidation | ✅ Completed |
 | Phase 5 | Final Report | ⏳ Planned |
 
 Trạng thái chỉ được đánh dấu hoàn thành khi có implementation hoặc evidence tương ứng.
@@ -775,6 +774,13 @@ Mọi test tạo hoặc thay đổi resource phải:
 - [Pinned Python Dependencies](tests/requirements.txt)
 - [P0 Selection Test](tests/schemathesis/test_p0_selection.py)
 
+### Reproducibility and consolidated results
+
+- [Reproducibility Guide](docs/reproducibility/REPRODUCIBILITY.md)
+- [Test Inventory and Coverage](reports/summarized/Test-Inventory-and-Coverage.md)
+- [Final Defect Summary](reports/summarized/Final-Defect-Summary.md)
+- [Phase 5 Reproducibility and Results Summary](reports/summarized/Phase-5-Reproducibility-and-Results-Summary.md)
+
 ---
 
 ## 19. Tiến độ tiếp theo
@@ -850,15 +856,15 @@ Mọi thành viên cần sử dụng cùng baseline để đảm bảo kết qu�
 
 ## Project Status
 
-**Current focus:** Phase 3A – Schemathesis P0 Proof-of-Concept
+**Current focus:** Phase 5 – Reproducibility & Result Consolidation
 
 ```text
 Environment        ██████████  Completed
 API Analysis       ██████████  Completed
 Test Design        ██████████  Completed
-Schemathesis POC   ██████░░░░  In Progress
-P1 Testing         ░░░░░░░░░░  Planned
-Triage/Defects     ░░░░░░░░░░  Planned
-Reproducibility    ░░░░░░░░░░  Planned
+Schemathesis POC   ██████████  Completed
+P1 Testing         ██████████  Completed
+Triage/Defects     ██████████  Completed
+Reproducibility    ██████████  Completed
 Final Report       ░░░░░░░░░░  Planned
 ```
