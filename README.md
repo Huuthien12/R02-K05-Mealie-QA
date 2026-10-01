@@ -282,7 +282,7 @@ Các thư mục dành cho evidence, reports hoặc defect artifacts có thể đ
 | Phase 3B | Controlled P1 lifecycle testing | ✅ Completed |
 | Phase 4 | Failure Triage / Defect Analysis | ✅ Completed |
 | Phase 5 | Reproducibility & result consolidation | ✅ Completed |
-| Phase 5 | Final Report | ⏳ Planned |
+| Phase 6 | Final Report & Demonstration | ⏳ Planned |
 
 Trạng thái chỉ được đánh dấu hoàn thành khi có implementation hoặc evidence tương ứng.
 
@@ -856,7 +856,7 @@ Mọi thành viên cần sử dụng cùng baseline để đảm bảo kết qu�
 
 ## Project Status
 
-**Current focus:** Phase 5 – Reproducibility & Result Consolidation
+**Current focus:** Phase 6 – Final Report & Demonstration
 
 ```text
 Environment        ██████████  Completed
