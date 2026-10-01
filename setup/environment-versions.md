@@ -34,5 +34,7 @@
 
 
 
-\- Schemathesis: Chưa cài đặt / sẽ pin sau
+\- Python: 3.11.9
+
+\- Schemathesis: 4.28.0 (pinned in `tests/requirements.txt`)
 
