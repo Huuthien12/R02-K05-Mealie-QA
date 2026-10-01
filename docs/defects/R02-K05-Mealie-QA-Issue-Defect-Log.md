@@ -1686,6 +1686,19 @@ Normal P1 regression               9 passed
 
 ---
 
+# 16. Phase 4 — Defect Evidence and RCA
+
+Phase 4 revalidated the existing defects on local Mealie `v3.28.0` at pinned commit `0552eaa4a80031b8572849cca0ed95d07f1be001`, against `schema/snapshots/mealie-v3.28.0-openapi.json`. No earlier P0/P1 entry was changed and no new ID was assigned.
+
+| ID | Phase 4 result | Reproduction | RCA status | Evidence |
+| --- | --- | --- | --- | --- |
+| DEF-01 | `GET /api/recipes?foods=` returned undocumented `500` | 3/3 | LIKELY IMPLEMENTATION PATH; exact runtime failure not established without a stack trace | `evidence/defects/DEF-01-recipe-empty-foods-500.md` |
+| DEF-02 | Each of three `orderBy=null` collection requests returned undocumented `400` | 9/9 | CONFIRMED ROOT CAUSE: nullable OpenAPI parameter reaches runtime order parser, which emits 400 | `evidence/defects/DEF-02-orderby-null-undocumented-400.md` |
+| DEF-03 | Nonexistent recipe and meal-plan details returned undocumented `404` | 6/6 | CONFIRMED ROOT CAUSE: routes deliberately produce 404 but response mappings omit it | `evidence/defects/DEF-03-undocumented-404.md` |
+| DEF-04 | Empty recipe name returned undocumented `500` / `AssertionError` | 3/3 | CONFIRMED ROOT CAUSE: unconstrained API input reaches model assertion and generic 500 handler | `evidence/defects/DEF-04-empty-recipe-name-500.md` |
+
+Safety: only `localhost:9091` was used; credentials and Authorization values were never saved. DEF-04 produced no successful creation, so no cleanup was required. The Phase 4 summary is `reports/summarized/Phase-4-Defect-Evidence-RCA-Summary.md`.
+
 ## Maintenance Note — P1
 
 Defect log này tiếp tục là living document.
