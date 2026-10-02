@@ -36,6 +36,8 @@ Docker `29.8.0`, Docker Compose `v5.5.1`, Python `3.11.9`, Schemathesis `4.28.0`
 
 Luồng là snapshot → analysis/scope → invariants/oracles → Schemathesis/pytest → local Mealie → evidence → triage/RCA. GET là P0; POST/PUT/PATCH/DELETE là P1 state-changing candidates.
 
+Kiến trúc, testing boundary và module liên quan được trace trong [SYSTEM-ARCHITECTURE.md](../../docs/architecture/SYSTEM-ARCHITECTURE.md) và [MODULE-DEPENDENCY-SUMMARY.md](../../docs/analysis/MODULE-DEPENDENCY-SUMMARY.md).
+
 ## 10. Phương pháp kiểm thử
 
 Oracle kiểm tra documented status, response schema, absence of undocumented 5xx và cleanup của resource test-created. Snapshot không đủ để khẳng định 401/403, ownership, idempotency hay rollback.
@@ -43,6 +45,8 @@ Oracle kiểm tra documented status, response schema, absence of undocumented 5x
 ## 11. Thiết kế kiểm thử
 
 P0 chọn 9 authenticated GET operations vì liên quan QA data và read-only. P1 dùng directed lifecycle/boundary tests với unique marker, cleanup child trước parent và không broad-fuzz write endpoints.
+
+Các business/data flows thực tế là recipe, shopping list, shopping item và meal plan; sequence/test/evidence nằm tại [BUSINESS-DATA-FLOWS.md](../../docs/architecture/BUSINESS-DATA-FLOWS.md). Ba flow P1 tối thiểu có retained historical evidence được map tại [BUSINESS-FLOW-EVIDENCE.md](BUSINESS-FLOW-EVIDENCE.md).
 
 ## 12. P0 – Read-only schema-based campaign
 
@@ -88,6 +92,8 @@ Tổng độc quyền là **4** families: **2 server-error** (DEF-01, DEF-04) v�
 ## 21. Reproducibility
 
 Phase 5 cung cấp clone/setup/health/snapshot/token-safe/P0/P1/cleanup guide. P5 không chạy authenticated replay mới vì process thiếu token; kết quả chỉ dùng P3/P4 evidence đã xác minh.
+
+Traceability đến yêu cầu bài tập nằm tại [ASSIGNMENT-COMPLIANCE.md](../../docs/compliance/ASSIGNMENT-COMPLIANCE.md). Workflow Git/evidence preservation được mô tả tại [PROJECT-WORKFLOW-EVIDENCE.md](../../docs/project-management/PROJECT-WORKFLOW-EVIDENCE.md); peer evaluation là template trống và phải do nhóm hoàn thành trung thực.
 
 ## 22. Giới hạn
 

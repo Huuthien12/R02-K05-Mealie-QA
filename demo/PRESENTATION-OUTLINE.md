@@ -6,8 +6,8 @@
 | 2 | Bài toán và mục tiêu | pipeline | 0:45 |
 | 3 | SUT Mealie/baseline | version/commit | 0:40 |
 | 4 | K05/Schemathesis | schema→case→oracle | 0:55 |
-| 5 | Scope/architecture | 182/266 vs P0 9 | 0:55 |
-| 6 | P0/P1 design | GET + lifecycle cleanup | 0:55 |
+| 5 | Scope và kiến trúc | 182/266 vs P0 9; component diagram | 0:55 |
+| 6 | Business flows và test design | Recipe/list/item/meal-plan; GET + cleanup | 0:55 |
 | 7 | Execution results | P0 detections; P1 9 passed | 1:00 |
 | 8 | DEF-01/DEF-04 | 500 and RCA boundary | 1:10 |
 | 9 | DEF-02/DEF-03 | undocumented 400/404 | 1:00 |

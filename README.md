@@ -781,6 +781,15 @@ Mọi test tạo hoặc thay đổi resource phải:
 - [Final Defect Summary](reports/summarized/Final-Defect-Summary.md)
 - [Phase 5 Reproducibility and Results Summary](reports/summarized/Phase-5-Reproducibility-and-Results-Summary.md)
 
+### Assignment compliance and final evidence
+
+- [Assignment Compliance Matrix](docs/compliance/ASSIGNMENT-COMPLIANCE.md)
+- [System Architecture](docs/architecture/SYSTEM-ARCHITECTURE.md)
+- [Business/Data Flows](docs/architecture/BUSINESS-DATA-FLOWS.md)
+- [Business Flow Evidence](reports/final/BUSINESS-FLOW-EVIDENCE.md)
+- [Project Workflow Evidence](docs/project-management/PROJECT-WORKFLOW-EVIDENCE.md)
+- [Peer Evaluation Template](docs/submission/PEER-EVALUATION-TEMPLATE.md)
+
 ---
 
 ## 19. Tiến độ tiếp theo
