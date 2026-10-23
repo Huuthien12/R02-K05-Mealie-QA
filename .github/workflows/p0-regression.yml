@@ -25,10 +25,10 @@ permissions:
 jobs:
   offline-contract-check:
     name: Offline collection and P0 selection
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
       - name: Install pinned test dependencies
@@ -40,7 +40,7 @@ jobs:
       - name: Verify the snapshot P0 selection
         run: python -m pytest tests/schemathesis/test_p0_selection.py -q --junitxml reports/local-runs/ci-p0-selection.xml
       - name: Upload offline JUnit
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: p0-offline-junit
           path: reports/local-runs/ci-p0-selection.xml
@@ -57,8 +57,8 @@ jobs:
       MEALIE_SOURCE_DIR: ${{ vars.MEALIE_QA_SOURCE_DIR }}
       MEALIE_PINNED_COMMIT: 0552eaa4a80031b8572849cca0ed95d07f1be001
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
       - name: Verify protected QA prerequisites
@@ -85,7 +85,7 @@ jobs:
           python -m pytest tests/schemathesis/test_p0_selection.py tests/schemathesis/test_p0_collections.py tests/schemathesis/test_p0_details.py tests/schemathesis/test_p0_smoke.py -q -rs --junitxml reports/local-runs/ci-p0-contract.xml
       - name: Upload P0 JUnit
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: p0-qa-junit
           path: reports/local-runs/ci-p0-contract.xml

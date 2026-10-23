@@ -42,10 +42,10 @@ env:
 jobs:
   legacy-inventory:
     name: Offline legacy inventory (21 items)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
       - name: Install pinned test dependencies
@@ -89,7 +89,7 @@ jobs:
             exit 1
           fi
       - name: Upload inventory evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: legacy-tc01-tc21-inventory
           path: legacy-tc01-tc21-collect.txt
@@ -106,8 +106,8 @@ jobs:
       MEALIE_BASE_URL: ${{ vars.MEALIE_QA_BASE_URL }}
       MEALIE_SOURCE_DIR: ${{ vars.MEALIE_QA_SOURCE_DIR }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
       - name: Verify protected QA prerequisites
@@ -161,7 +161,7 @@ jobs:
           $summary | Tee-Object -FilePath reports/ci/legacy/p0-summary.txt | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
       - name: Upload P0 evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: legacy-tc01-tc11-p0-${{ github.run_id }}
           path: reports/ci/legacy/p0*
@@ -183,8 +183,8 @@ jobs:
       MEALIE_SOURCE_DIR: ${{ vars.MEALIE_QA_SOURCE_DIR }}
       MEALIE_QA_DISPOSABLE: ${{ vars.MEALIE_QA_DISPOSABLE }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
       - name: Enforce disposable QA safety gate
@@ -247,7 +247,7 @@ jobs:
           $summary | Tee-Object -FilePath reports/ci/legacy/p1-summary.txt | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
       - name: Upload P1 evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: legacy-tc12-tc21-p1-${{ github.run_id }}
           path: reports/ci/legacy/p1*
@@ -261,10 +261,10 @@ jobs:
     name: Summarize TC-01 through TC-21
     needs: [legacy-inventory, legacy-p0, legacy-p1]
     if: always() && github.event_name == 'workflow_dispatch' && inputs.run_p0 && inputs.run_p1
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Download P0 and P1 evidence
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: legacy-tc*-p*-${{ github.run_id }}
           path: reports/ci/legacy
@@ -296,7 +296,7 @@ jobs:
               output.write(summary + "\n")
           PY
       - name: Upload combined summary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: legacy-tc01-tc21-summary-${{ github.run_id }}
           path: legacy-tc01-tc21-summary.txt
