@@ -454,3 +454,30 @@ Nhóm đã có **OpenAPI snapshot và oracle O1–O8** làm cơ sở ban đầu;
 - [Evidence DEF-04](../../evidence/defects/DEF-04-empty-recipe-name-500.md)
 
 **Kết luận:** Mọi test ID đều có đích truy vết về REQ, và mọi kết quả FAIL đều có nhóm defect/evidence tương ứng. Những điều chưa chứng minh được đánh dấu rõ là *test gap, contract gap hoặc team-level expectation*, thay vì bị trình bày là chức năng đã được kiểm thử toàn diện.
+
+---
+
+## 11. Bổ sung TC-22…TC-37 – implementation tracking
+
+Phụ lục này bổ sung traceability cho 16 pytest item mới. Nó không sửa dữ liệu historical TC-01…TC-21. Expected **C** là response map trong snapshot `mealie-v3.28.0-openapi.json`; Expected **T** chỉ được assert có điều kiện sau một response thành công theo C.
+
+| Test ID | Requirement IDs | File pytest | Implementation | Actual / Verdict |
+|---|---|---|---|---|
+| TC-22 | REQ-LST-03/06, REQ-COM-02/06 | `test_tc22_tc25_shopping_lists.py` | IMPLEMENTED | PASS |
+| TC-23 | REQ-LST-03, REQ-COM-02/03/06 | `test_tc22_tc25_shopping_lists.py` | IMPLEMENTED | PASS |
+| TC-24 | REQ-LST-02/04, REQ-COM-02/06 | `test_tc22_tc25_shopping_lists.py` | IMPLEMENTED | FAIL — 404, DEF-03 extension |
+| TC-25 | REQ-LST-05, REQ-COM-02/06/07 | `test_tc22_tc25_shopping_lists.py` | IMPLEMENTED | FAIL — second DELETE 404, DEF-03 extension |
+| TC-26 | REQ-MLP-01, REQ-COM-02/03/04 | `test_tc26_tc29_mealplans.py` | IMPLEMENTED | PASS |
+| TC-27 | REQ-MLP-05, REQ-COM-06 | `test_tc26_tc29_mealplans.py` | IMPLEMENTED | PASS |
+| TC-28 | REQ-MLP-06, REQ-COM-02/06 | `test_tc26_tc29_mealplans.py` | IMPLEMENTED | FAIL — DELETE missing ID 404, DEF-03 extension |
+| TC-29 | REQ-MLP-05/07, REQ-COM-02/06 | `test_tc26_tc29_mealplans.py` | IMPLEMENTED | PASS |
+| TC-30 | REQ-ITM-04/06, REQ-COM-02/06 | `test_tc30_tc33_shopping_items.py` | IMPLEMENTED | PASS |
+| TC-31 | REQ-ITM-03/06, REQ-COM-02/06 | `test_tc30_tc33_shopping_items.py` | IMPLEMENTED | FAIL — 500, DEF-05 candidate |
+| TC-32 | REQ-ITM-04, REQ-COM-06 | `test_tc30_tc33_shopping_items.py` | IMPLEMENTED | PASS |
+| TC-33 | REQ-ITM-03/04/05, REQ-COM-06 | `test_tc30_tc33_shopping_items.py` | IMPLEMENTED | PASS |
+| TC-34 | REQ-REC-03/04, REQ-COM-02/06 | `test_tc34_tc37_recipes.py` | IMPLEMENTED | FAIL — partial PUT 500, DEF-06 candidate |
+| TC-35 | REQ-REC-03/04, REQ-COM-02/06 | `test_tc34_tc37_recipes.py` | FIXED, VERIFIED | PASS — returned slug used after PATCH; TEST-07 resolved |
+| TC-36 | REQ-REC-05, REQ-COM-02/04/06 | `test_tc34_tc37_recipes.py` | IMPLEMENTED | FAIL — whitespace POST 400, DEF-07 candidate |
+| TC-37 | REQ-REC-03/05, REQ-COM-02/04/06 | `test_tc34_tc37_recipes.py` | IMPLEMENTED | PASS |
+
+`pytest --collect-only -q` verified 37 items (21 historical + 16 new). The retained 2026-10-22 expansion JUnit records 9 PASS / 7 FAIL. The post-fix JUnit `reports/local-runs/tc22-tc37-20261023-215442-705.xml` records 10 PASS, 6 FAIL, 0 SKIP, 0 ERROR and verifies TC-35. These campaigns do not replace historical TC-01…TC-21 evidence. A post-run marker audit found two historical TC-35 recipes, deleted only those verified test resources with HTTP 200, and confirmed zero remaining `K05-TC-` resources across the four expansion areas.
