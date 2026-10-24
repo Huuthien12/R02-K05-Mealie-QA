@@ -6,7 +6,7 @@ Status reviewed: **2026-10-24**.
 |---|---|---|
 | P0 offline inventory and selection | GITHUB VERIFIED | `P0 contract regression #1` completed successfully for commit `fc4f6b3`; this did not call Mealie. |
 | Legacy TC-01..TC-21 offline inventory | STATIC VALIDATED | Workflow is present on `main`; no GitHub run was visible during this review. |
-| GitHub-hosted authenticated P0 (TC-01..TC-11) | IMPLEMENTED / STATIC VALIDATED | Run #1 reached Docker startup but failed before bootstrap/P0 because its image digest contained a typo; the corrected immutable linux/amd64 digest is preflighted before startup. A successful authenticated run is still required for `GITHUB VERIFIED`. |
+| GitHub-hosted authenticated P0 (TC-01..TC-11) | GITHUB VERIFIED | [Run #2](https://github.com/Huuthien12/R02-K05-Mealie-QA/actions/runs/40087491627) completed startup, ephemeral authentication, and all 11 items: 4 PASS, 7 known-defect FAIL, 0 SKIP, 0 ERROR. |
 | Authenticated P0 on self-hosted QA | RETIRED / NOT VERIFIED | The ACER runner was removed because this public repository must not rely on a persistent workstation runner. |
 | Legacy P1 on disposable QA | NOT VERIFIED / BLOCKED | No independently isolated disposable instance or runner could be verified. |
 
@@ -36,6 +36,23 @@ The job creates a random user/password only in the runner, registers it through 
 All artifacts upload even after pytest failures. Known DEF-01..DEF-03 failures remain red; the workflow restores the genuine pytest failure status after collecting evidence. This is P0 read-only only: it never runs TC-12..TC-21 or any P1 write operation.
 
 The digest is immutable deployment evidence for the published `v3.28.0` manifest. It does not independently prove that the published image was built from source commit `0552eaa4a80031b8572849cca0ed95d07f1be001`; the workflow records that expected baseline as metadata and treats source-commit provenance as a documented limitation.
+
+### GitHub-hosted execution evidence — run #2
+
+[GitHub-hosted Mealie P0 regression #2](https://github.com/Huuthien12/R02-K05-Mealie-QA/actions/runs/40087491627) ran on `main` commit `b949e09c0a08e21792c80b00a343ae39a4d3c2dc` at `2026-10-24T10:50:40Z`. Its `mealie-hosted-p0-40087491627` artifact records a fresh SQLite volume, successful immutable-image resolution/pull, runtime `v3.28.0`, OpenAPI `3.1.0`, registration `201`, and authenticated self-check `200` before pytest.
+
+| Result | P0 testcase(s) | Interpretation |
+|---|---|---|
+| PASS | Snapshot selection; meal-plan `today`; shopping-list detail; shopping-item detail | Four items completed without a detected contract failure. |
+| FAIL (2 items) | Recipe collection fuzz and recipe smoke | DEF-01: the same schema-generated `GET /api/recipes` input with empty `foods` returned undocumented `500`; two test items are one defect family, not two new defects. |
+| FAIL (3 items) | Shopping-list, shopping-item, and meal-plan collections | DEF-02: `orderBy=null` returned undocumented `400` where the snapshot documents `200`/`422`. |
+| FAIL (2 items) | Meal-plan detail `/0` and recipe detail `/0` | DEF-03: nonexistent resources returned undocumented `404` where the snapshot documents `200`/`422`. |
+
+JUnit totals are **4 PASS, 7 FAIL, 0 SKIP, 0 ERROR**. The red workflow conclusion reflects known SUT/API-contract detections, not CI infrastructure: image pull, service startup, bootstrap, bearer authentication, and test execution all completed. The run adds no defect family and does not change the controlled-reproduction counts in the defect log.
+
+### GitHub-hosted P1 expansion status
+
+The job-unique SQLite volume and container teardown demonstrate an isolation pattern that can support a future disposable P1 job. Existing P1 tests use unique markers and `finally` cleanup limited to test-created resource identifiers, but that cleanup has not been verified in a GitHub-hosted write campaign. Therefore TC-12..TC-21 remain **not implemented and blocked** for hosted CI until a separately reviewed workflow proves P1-specific preconditions, post-test cleanup verification, JUnit evidence, and job-volume destruction. No P1 write operation is enabled by this workflow.
 
 ### Legacy TC-01 through TC-21 API regression
 
@@ -110,7 +127,6 @@ If the workflow is red because a known defect reproduces, keep the red verdict, 
 
 - Default branch is `main`; this branch is not merged into it.
 - GitHub CLI authentication was invalid during the review, so Environment, runner online state, branch protection, and a Draft PR could not be inspected or changed.
-- GitHub-hosted run #1 failed before Mealie startup with Docker exit 125 (`manifest unknown`): the workflow had `...d06ef7e7...` instead of the resolved linux/amd64 digest `...d06ef7a7...`. It did not bootstrap credentials or execute pytest, so the missing JUnit was a secondary consequence rather than a test result.
-- The corrected workflow preflights `docker manifest inspect` and `docker pull` and records their non-sensitive result in metadata; `GITHUB VERIFIED` must wait for a successful authenticated rerun.
+- GitHub-hosted run #1 failed before Mealie startup with Docker exit 125 (`manifest unknown`) because the workflow had `...d06ef7e7...` instead of `...d06ef7a7...`; run #2 verified the correction and retained the expected known-defect verdicts in JUnit.
 - The release image digest was resolved from the `v3.28.0` manifest, but release-image-to-source-commit provenance was not independently established.
 - P1 remains blocked until a disposable environment is demonstrated.
