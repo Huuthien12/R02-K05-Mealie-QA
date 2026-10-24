@@ -1,0 +1,96 @@
+name: P0 contract regression
+
+on:
+  push:
+    paths:
+      - "schema/**"
+      - "tests/**"
+      - ".github/workflows/p0-regression.yml"
+  pull_request:
+    paths:
+      - "schema/**"
+      - "tests/**"
+      - ".github/workflows/p0-regression.yml"
+  workflow_dispatch:
+    inputs:
+      run_qa_p0:
+        description: "Run authenticated P0 against the protected self-hosted QA runner"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  offline-contract-check:
+    name: Offline collection and P0 selection
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - name: Install pinned test dependencies
+        run: python -m pip install -r tests/requirements.txt
+      - name: Create JUnit output directory
+        run: mkdir -p reports/local-runs
+      - name: Collect the fixed test inventory
+        run: python -m pytest --collect-only -q
+      - name: Verify the snapshot P0 selection
+        run: python -m pytest tests/schemathesis/test_p0_selection.py -q --junitxml reports/local-runs/ci-p0-selection.xml
+      - name: Upload offline JUnit
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: p0-offline-junit
+          path: reports/local-runs/ci-p0-selection.xml
+          if-no-files-found: error
+
+  qa-p0-contract-campaign:
+    name: Protected authenticated P0 campaign
+    if: github.event_name == 'workflow_dispatch' && inputs.run_qa_p0
+    runs-on: [self-hosted, windows, mealie-qa]
+    environment: qa
+    env:
+      MEALIE_API_TOKEN: ${{ secrets.MEALIE_QA_API_TOKEN }}
+      MEALIE_BASE_URL: ${{ vars.MEALIE_QA_BASE_URL }}
+      MEALIE_SOURCE_DIR: ${{ vars.MEALIE_QA_SOURCE_DIR }}
+      MEALIE_PINNED_COMMIT: 0552eaa4a80031b8572849cca0ed95d07f1be001
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - name: Verify protected QA prerequisites
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:MEALIE_API_TOKEN)) { throw "MEALIE_QA_API_TOKEN is not configured." }
+          if ($env:MEALIE_BASE_URL -notin @("http://localhost:9091", "http://127.0.0.1:9091")) { throw "QA URL must be local to the protected runner." }
+          if ([string]::IsNullOrWhiteSpace($env:MEALIE_SOURCE_DIR)) { throw "MEALIE_QA_SOURCE_DIR is not configured." }
+          if ((git -C $env:MEALIE_SOURCE_DIR rev-parse HEAD) -ne $env:MEALIE_PINNED_COMMIT) { throw "Mealie source does not match the pinned baseline." }
+          foreach ($endpoint in @("/api/app/about", "/openapi.json")) {
+            $reply = Invoke-WebRequest -Uri ($env:MEALIE_BASE_URL + $endpoint) -UseBasicParsing -TimeoutSec 20
+            if ([int]$reply.StatusCode -ne 200) { throw "$endpoint did not return 200." }
+          }
+      - name: Install pinned test dependencies
+        run: python -m pip install -r tests/requirements.txt
+      - name: Create JUnit output directory
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force reports/local-runs | Out-Null
+      - name: Run P0 and retain contract failures
+        id: p0
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          python -m pytest tests/schemathesis/test_p0_selection.py tests/schemathesis/test_p0_collections.py tests/schemathesis/test_p0_details.py tests/schemathesis/test_p0_smoke.py -q -rs --junitxml reports/local-runs/ci-p0-contract.xml
+      - name: Upload P0 JUnit
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: p0-qa-junit
+          path: reports/local-runs/ci-p0-contract.xml
+          if-no-files-found: error
+      - name: Preserve failing P0 contract verdict
+        if: always() && steps.p0.outcome != 'success'
+        shell: pwsh
+        run: throw "P0 contract assertions failed; inspect the uploaded JUnit artifact."

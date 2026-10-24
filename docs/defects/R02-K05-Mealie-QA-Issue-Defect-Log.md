@@ -35,6 +35,10 @@
 | DEF-02 | SUT / API Contract | `orderBy=null` trả HTTP 400 không được OpenAPI document trên 3 GET endpoints | Reproduced across 3 endpoints | Reproducible contract defect candidate |
 | DEF-03 | SUT / API Contract | Detail resource không tồn tại trả HTTP 404 nhưng OpenAPI không document 404 | Reproduced on 2 endpoints | Reproducible contract defect candidate |
 | DEF-04 | SUT | `POST /api/recipes` với `{"name": ""}` trả HTTP 500 / AssertionError | Needs controlled triage | Defect candidate |
+| DEF-05 | SUT / API Contract | POST Shopping Item với parent UUID hợp lệ nhưng không tồn tại trả HTTP 500 | Reproduced 2/2 | Reproducible defect candidate |
+| DEF-06 | SUT / API Contract | PUT Recipe partial theo schema trả HTTP 500 / ValidationError | Reproduced 2/2 | Reproducible defect candidate |
+| DEF-07 | API Contract | POST Recipe tên chỉ có khoảng trắng trả HTTP 400 không document | Reproduced 2/2 | Reproducible contract defect candidate |
+| TEST-07 | Test Harness | TC-35 dùng slug cũ sau PATCH đổi name nên GET/cleanup sai resource | Fixed / Verified | Không |
 
 ---
 
@@ -1711,3 +1715,60 @@ Các phase tiếp theo phải:
 4. Phân biệt SUT defect với environment/tooling issue.
 5. Không suy đoán root cause nếu chưa có source/log evidence.
 6. Giữ reproducer tối thiểu cho defect đã xác nhận.
+
+---
+
+## 17. TC-22…TC-37 Runtime Expansion — 2026-10-22
+
+Evidence: `reports/local-runs/tc22-tc37-20261022-164618-697.xml` recorded 9 PASS, 7 FAIL, 0 SKIP, 0 ERROR. The run was authenticated against local QA only; it does not alter historical TC-01…TC-21 results.
+
+This section preserves the status known on 2026-10-22. Section 18 records the later post-fix verification and must be used for the current verdict.
+
+### DEF-03 extension — undocumented 404, not new defect IDs
+
+TC-24 (`PUT` missing Shopping List), TC-25 (second `DELETE` of a test list), and TC-28 (`DELETE` missing Meal Plan) each returned `404` while their response maps list only `200` and `422`. These are additional operation-level observations of the established DEF-03 OpenAPI/runtime 404 family, not three new SUT defects.
+
+### DEF-05 — Shopping Item valid missing parent returns 500
+
+- Status: Observed 1/1; controlled repetition required.
+- Endpoint/input: `POST /api/households/shopping/items` with a valid UUID verified absent as `shoppingListId` and a unique display name.
+- Expected C: `201` or `422`; actual: `500 Internal Server Error`.
+- Classification: SUT invalid-reference handling plus response-contract candidate.
+- RCA: LIKELY IMPLEMENTATION PATH; no exact runtime stack trace.
+- Evidence: `evidence/defects/DEF-05-shopping-item-missing-parent-500.md`.
+
+### DEF-06 — Schema-valid partial Recipe PUT returns 500
+
+- Status: Observed 1/1; controlled repetition required.
+- Endpoint/input: `PUT /api/recipes/{slug}` with a test-created slug and `{"name":"K05-TC-34-updated-<run-id>"}`.
+- Expected C: `200` or `422`; actual: `500` with `ValidationError` detail.
+- Classification: SUT plus request/response-contract candidate.
+- RCA: LIKELY IMPLEMENTATION PATH; PUT full-replacement behavior conflicts with a schema having no required `Recipe-Input` fields, but the exact validation failure is not established.
+- Evidence: `evidence/defects/DEF-06-recipe-partial-put-500.md`.
+
+### DEF-07 — Whitespace Recipe name returns undocumented 400
+
+- Status: Observed 1/1; controlled repetition required.
+- Endpoint/input: `POST /api/recipes` with `{"name":"   "}`.
+- Expected C: `201` or `422`; actual: `400`, `Unable to generate recipe slug`.
+- Classification: OpenAPI/runtime response-contract candidate.
+- RCA: ROOT CAUSE NOT ESTABLISHED.
+- Evidence: `evidence/defects/DEF-07-recipe-whitespace-name-undocumented-400.md`.
+
+### TEST-07 — TC-35 stale-slug verification and cleanup
+
+TC-35 PATCH returned a documented `200`, then GET of the old slug returned `404`. Source inspection shows a Recipe name change generates a new slug. The test was corrected to use the `slug` from the successful PATCH response for GET and cleanup. This is a test-harness issue, not a Mealie defect; it must be re-run before declaring a new TC-35 verdict or cleanup result.
+
+---
+
+## 18. Post-fix Regression and Cleanup — 2026-10-23
+
+Evidence: `reports/local-runs/p0-20261023-215442-705.xml` records 4 PASS / 7 FAIL, and `reports/local-runs/tc22-tc37-20261023-215442-705.xml` records 10 PASS / 6 FAIL / 0 SKIP / 0 ERROR. Historical XML files were preserved.
+
+- TEST-07: TC-35 PASS after using the slug returned by PATCH. Status **FIXED / VERIFIED**; this is a harness correction, not a Mealie defect.
+- DEF-03 extension: TC-24, TC-25 and TC-28 again returned undocumented `404`; each expansion operation is now observed 2/2 across the two campaigns. No duplicate defect IDs were created.
+- DEF-05: TC-31 again returned `500`; reproduction 2/2. Classification remains server-side invalid-reference handling plus contract mismatch; proposed High / High.
+- DEF-06: TC-34 again returned `500 ValidationError`; reproduction 2/2. Classification remains server error plus published input/response-contract mismatch; proposed High / High.
+- DEF-07: TC-36 again returned undocumented `400`; reproduction 2/2. The business rejection is reasonable, while the OpenAPI response/schema is incomplete; proposed Medium / Medium.
+
+Cleanup audit: the authenticated four-area scan found only two exact test markers, both recipes named `K05-TC-35-patched-<8 hex>`. They were verified as test-generated by the TC-35 naming pattern, deleted individually with HTTP 200, and a follow-up scan confirmed zero remaining TC-35 markers. No user or non-test resource was deleted. The leftovers are consistent with the two pre-fix campaigns, but exact per-run attribution is unavailable because historical JUnit does not retain generated run IDs.

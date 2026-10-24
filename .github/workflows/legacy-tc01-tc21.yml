@@ -1,0 +1,303 @@
+name: Legacy TC01-TC21 API regression
+
+on:
+  push:
+    paths:
+      - "schema/**"
+      - "tests/requirements.txt"
+      - "tests/schemathesis/test_p0_*.py"
+      - "tests/schemathesis/test_p1_*.py"
+      - ".github/workflows/legacy-tc01-tc21.yml"
+  pull_request:
+    paths:
+      - "schema/**"
+      - "tests/requirements.txt"
+      - "tests/schemathesis/test_p0_*.py"
+      - "tests/schemathesis/test_p1_*.py"
+      - ".github/workflows/legacy-tc01-tc21.yml"
+  workflow_dispatch:
+    inputs:
+      run_p0:
+        description: "Run authenticated read-only TC-01 through TC-11"
+        required: true
+        default: false
+        type: boolean
+      run_p1:
+        description: "Run write-enabled TC-12 through TC-21"
+        required: true
+        default: false
+        type: boolean
+      confirm_disposable_qa:
+        description: "Confirm the P1 runner uses an isolated disposable Mealie QA database"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  MEALIE_PINNED_COMMIT: 0552eaa4a80031b8572849cca0ed95d07f1be001
+
+jobs:
+  legacy-inventory:
+    name: Offline legacy inventory (21 items)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - name: Install pinned test dependencies
+        run: python -m pip install -r tests/requirements.txt
+      - name: Compile legacy test modules
+        run: >-
+          python -m py_compile
+          tests/schemathesis/test_p0_collections.py
+          tests/schemathesis/test_p0_details.py
+          tests/schemathesis/test_p0_selection.py
+          tests/schemathesis/test_p0_smoke.py
+          tests/schemathesis/test_p1_mealplan_boundaries.py
+          tests/schemathesis/test_p1_mealplan_lifecycle.py
+          tests/schemathesis/test_p1_recipe_empty_name.py
+          tests/schemathesis/test_p1_recipe_lifecycle.py
+          tests/schemathesis/test_p1_shopping_item_boundaries.py
+          tests/schemathesis/test_p1_shopping_item_lifecycle.py
+          tests/schemathesis/test_p1_shopping_list_boundaries.py
+          tests/schemathesis/test_p1_shopping_list_lifecycle.py
+      - name: Collect exactly TC-01 through TC-21
+        shell: bash
+        run: |
+          legacy_files=(
+            tests/schemathesis/test_p0_collections.py
+            tests/schemathesis/test_p0_details.py
+            tests/schemathesis/test_p0_selection.py
+            tests/schemathesis/test_p0_smoke.py
+            tests/schemathesis/test_p1_mealplan_boundaries.py
+            tests/schemathesis/test_p1_mealplan_lifecycle.py
+            tests/schemathesis/test_p1_recipe_empty_name.py
+            tests/schemathesis/test_p1_recipe_lifecycle.py
+            tests/schemathesis/test_p1_shopping_item_boundaries.py
+            tests/schemathesis/test_p1_shopping_item_lifecycle.py
+            tests/schemathesis/test_p1_shopping_list_boundaries.py
+            tests/schemathesis/test_p1_shopping_list_lifecycle.py
+          )
+          python -m pytest --collect-only -q "${legacy_files[@]}" | tee legacy-tc01-tc21-collect.txt
+          grep -Eq '^21 tests collected' legacy-tc01-tc21-collect.txt
+          if grep -Eq 'test_tc(22|26|30|34)_' legacy-tc01-tc21-collect.txt; then
+            echo "TC-22 through TC-37 leaked into the legacy inventory." >&2
+            exit 1
+          fi
+      - name: Upload inventory evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: legacy-tc01-tc21-inventory
+          path: legacy-tc01-tc21-collect.txt
+          if-no-files-found: error
+
+  legacy-p0:
+    name: Protected legacy P0 (TC-01 to TC-11)
+    needs: legacy-inventory
+    if: github.event_name == 'workflow_dispatch' && inputs.run_p0
+    runs-on: [self-hosted, windows, mealie-qa]
+    environment: qa
+    env:
+      MEALIE_API_TOKEN: ${{ secrets.MEALIE_QA_API_TOKEN }}
+      MEALIE_BASE_URL: ${{ vars.MEALIE_QA_BASE_URL }}
+      MEALIE_SOURCE_DIR: ${{ vars.MEALIE_QA_SOURCE_DIR }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - name: Verify protected QA prerequisites
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:MEALIE_API_TOKEN)) { throw "MEALIE_QA_API_TOKEN is not configured." }
+          if ($env:MEALIE_BASE_URL -notin @("http://localhost:9091", "http://127.0.0.1:9091")) { throw "P0 is restricted to local QA on the protected runner." }
+          if ([string]::IsNullOrWhiteSpace($env:MEALIE_SOURCE_DIR)) { throw "MEALIE_QA_SOURCE_DIR is not configured." }
+          if ((git -C $env:MEALIE_SOURCE_DIR rev-parse HEAD) -ne $env:MEALIE_PINNED_COMMIT) { throw "Mealie source does not match the pinned baseline." }
+          foreach ($endpoint in @("/api/app/about", "/openapi.json")) {
+            $reply = Invoke-WebRequest -Uri ($env:MEALIE_BASE_URL + $endpoint) -UseBasicParsing -TimeoutSec 20
+            if ([int]$reply.StatusCode -ne 200) { throw "$endpoint did not return 200." }
+          }
+          $auth = Invoke-WebRequest -Uri ($env:MEALIE_BASE_URL + "/api/users/self") -Headers @{ Authorization = "Bearer " + $env:MEALIE_API_TOKEN } -UseBasicParsing -TimeoutSec 20
+          if ([int]$auth.StatusCode -ne 200) { throw "The dedicated QA token was rejected." }
+      - name: Install pinned test dependencies
+        run: python -m pip install -r tests/requirements.txt
+      - name: Prepare P0 evidence metadata
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force reports/ci/legacy | Out-Null
+          $about = Invoke-RestMethod -Uri ($env:MEALIE_BASE_URL + "/api/app/about") -TimeoutSec 20
+          @(
+            "qa_commit=$env:GITHUB_SHA"
+            "run_started_utc=$([DateTime]::UtcNow.ToString('o'))"
+            "runner_os=$env:RUNNER_OS"
+            "sut_source_commit=$(git -C $env:MEALIE_SOURCE_DIR rev-parse HEAD)"
+            "sut_version=$($about.version)"
+            "scope=TC-01..TC-11"
+          ) | Set-Content -Encoding utf8 reports/ci/legacy/p0-metadata.txt
+      - name: Run legacy P0
+        id: p0
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          python -m pytest `
+            tests/schemathesis/test_p0_collections.py `
+            tests/schemathesis/test_p0_details.py `
+            tests/schemathesis/test_p0_selection.py `
+            tests/schemathesis/test_p0_smoke.py `
+            -q -rs --junitxml reports/ci/legacy/p0.xml
+      - name: Summarize P0 JUnit
+        if: always()
+        shell: pwsh
+        run: |
+          if (-not (Test-Path reports/ci/legacy/p0.xml)) { throw "P0 JUnit was not generated." }
+          [xml]$junit = Get-Content -Raw reports/ci/legacy/p0.xml
+          $suite = $junit.SelectSingleNode("//testsuite")
+          $passed = [int]$suite.tests - [int]$suite.failures - [int]$suite.errors - [int]$suite.skipped
+          $summary = "P0 TC-01..TC-11: PASS=$passed FAIL=$($suite.failures) SKIP=$($suite.skipped) ERROR=$($suite.errors)"
+          $summary | Tee-Object -FilePath reports/ci/legacy/p0-summary.txt | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
+      - name: Upload P0 evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: legacy-tc01-tc11-p0-${{ github.run_id }}
+          path: reports/ci/legacy/p0*
+          if-no-files-found: error
+      - name: Preserve P0 verdict
+        if: always() && steps.p0.outcome != 'success'
+        shell: pwsh
+        run: throw "Legacy P0 assertions failed; inspect the uploaded JUnit artifact."
+
+  legacy-p1:
+    name: Disposable legacy P1 (TC-12 to TC-21)
+    needs: legacy-inventory
+    if: github.event_name == 'workflow_dispatch' && inputs.run_p1
+    runs-on: [self-hosted, windows, mealie-qa-disposable]
+    environment: qa
+    env:
+      MEALIE_API_TOKEN: ${{ secrets.MEALIE_QA_API_TOKEN }}
+      MEALIE_BASE_URL: ${{ vars.MEALIE_QA_BASE_URL }}
+      MEALIE_SOURCE_DIR: ${{ vars.MEALIE_QA_SOURCE_DIR }}
+      MEALIE_QA_DISPOSABLE: ${{ vars.MEALIE_QA_DISPOSABLE }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - name: Enforce disposable QA safety gate
+        shell: pwsh
+        env:
+          DISPOSABLE_CONFIRMED: ${{ inputs.confirm_disposable_qa }}
+        run: |
+          if ($env:DISPOSABLE_CONFIRMED -ne "true") { throw "P1 stopped: workflow input did not confirm disposable QA." }
+          if ($env:MEALIE_QA_DISPOSABLE -ne "true") { throw "P1 stopped: protected qa variable MEALIE_QA_DISPOSABLE must equal true." }
+          if ([string]::IsNullOrWhiteSpace($env:MEALIE_API_TOKEN)) { throw "P1 stopped: MEALIE_QA_API_TOKEN is not configured." }
+          if ($env:MEALIE_BASE_URL -notin @("http://localhost:9091", "http://127.0.0.1:9091")) { throw "P1 stopped: target must be local to the disposable runner." }
+          if ([string]::IsNullOrWhiteSpace($env:MEALIE_SOURCE_DIR)) { throw "P1 stopped: MEALIE_QA_SOURCE_DIR is not configured." }
+          if ((git -C $env:MEALIE_SOURCE_DIR rev-parse HEAD) -ne $env:MEALIE_PINNED_COMMIT) { throw "P1 stopped: Mealie source does not match the pinned baseline." }
+          foreach ($endpoint in @("/api/app/about", "/openapi.json")) {
+            $reply = Invoke-WebRequest -Uri ($env:MEALIE_BASE_URL + $endpoint) -UseBasicParsing -TimeoutSec 20
+            if ([int]$reply.StatusCode -ne 200) { throw "P1 stopped: $endpoint did not return 200." }
+          }
+          $auth = Invoke-WebRequest -Uri ($env:MEALIE_BASE_URL + "/api/users/self") -Headers @{ Authorization = "Bearer " + $env:MEALIE_API_TOKEN } -UseBasicParsing -TimeoutSec 20
+          if ([int]$auth.StatusCode -ne 200) { throw "P1 stopped: the dedicated QA token was rejected." }
+      - name: Install pinned test dependencies
+        run: python -m pip install -r tests/requirements.txt
+      - name: Prepare P1 evidence metadata
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force reports/ci/legacy | Out-Null
+          $about = Invoke-RestMethod -Uri ($env:MEALIE_BASE_URL + "/api/app/about") -TimeoutSec 20
+          @(
+            "qa_commit=$env:GITHUB_SHA"
+            "run_started_utc=$([DateTime]::UtcNow.ToString('o'))"
+            "runner_os=$env:RUNNER_OS"
+            "runner_class=mealie-qa-disposable"
+            "sut_source_commit=$(git -C $env:MEALIE_SOURCE_DIR rev-parse HEAD)"
+            "sut_version=$($about.version)"
+            "scope=TC-12..TC-21"
+          ) | Set-Content -Encoding utf8 reports/ci/legacy/p1-metadata.txt
+      - name: Run legacy P1
+        id: p1
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          python -m pytest `
+            tests/schemathesis/test_p1_mealplan_boundaries.py `
+            tests/schemathesis/test_p1_mealplan_lifecycle.py `
+            tests/schemathesis/test_p1_recipe_empty_name.py `
+            tests/schemathesis/test_p1_recipe_lifecycle.py `
+            tests/schemathesis/test_p1_shopping_item_boundaries.py `
+            tests/schemathesis/test_p1_shopping_item_lifecycle.py `
+            tests/schemathesis/test_p1_shopping_list_boundaries.py `
+            tests/schemathesis/test_p1_shopping_list_lifecycle.py `
+            -q -rs --junitxml reports/ci/legacy/p1.xml
+      - name: Summarize P1 JUnit
+        if: always()
+        shell: pwsh
+        run: |
+          if (-not (Test-Path reports/ci/legacy/p1.xml)) { throw "P1 JUnit was not generated." }
+          [xml]$junit = Get-Content -Raw reports/ci/legacy/p1.xml
+          $suite = $junit.SelectSingleNode("//testsuite")
+          $passed = [int]$suite.tests - [int]$suite.failures - [int]$suite.errors - [int]$suite.skipped
+          $summary = "P1 TC-12..TC-21: PASS=$passed FAIL=$($suite.failures) SKIP=$($suite.skipped) ERROR=$($suite.errors)"
+          $summary | Tee-Object -FilePath reports/ci/legacy/p1-summary.txt | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
+      - name: Upload P1 evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: legacy-tc12-tc21-p1-${{ github.run_id }}
+          path: reports/ci/legacy/p1*
+          if-no-files-found: error
+      - name: Preserve P1 verdict
+        if: always() && steps.p1.outcome != 'success'
+        shell: pwsh
+        run: throw "Legacy P1 assertions failed; inspect the uploaded JUnit artifact."
+
+  legacy-21-summary:
+    name: Summarize TC-01 through TC-21
+    needs: [legacy-inventory, legacy-p0, legacy-p1]
+    if: always() && github.event_name == 'workflow_dispatch' && inputs.run_p0 && inputs.run_p1
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download P0 and P1 evidence
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: legacy-tc*-p*-${{ github.run_id }}
+          path: reports/ci/legacy
+          merge-multiple: true
+      - name: Summarize all 21 legacy items
+        shell: bash
+        run: |
+          python - <<'PY'
+          import pathlib
+          import xml.etree.ElementTree as ET
+
+          totals = {"tests": 0, "failures": 0, "errors": 0, "skipped": 0}
+          for name in ("p0.xml", "p1.xml"):
+              root = ET.parse(pathlib.Path("reports/ci/legacy") / name).getroot()
+              suites = root.findall(".//testsuite") or [root]
+              for suite in suites:
+                  for key in totals:
+                      totals[key] += int(suite.attrib.get(key, 0))
+          if totals["tests"] != 21:
+              raise SystemExit(f"Expected 21 legacy items, got {totals['tests']}")
+          passed = totals["tests"] - totals["failures"] - totals["errors"] - totals["skipped"]
+          summary = (
+              f"TC-01..TC-21: PASS={passed} FAIL={totals['failures']} "
+              f"SKIP={totals['skipped']} ERROR={totals['errors']}"
+          )
+          print(summary)
+          pathlib.Path("legacy-tc01-tc21-summary.txt").write_text(summary + "\n", encoding="utf-8")
+          with open(pathlib.Path(__import__('os').environ["GITHUB_STEP_SUMMARY"]), "a", encoding="utf-8") as output:
+              output.write(summary + "\n")
+          PY
+      - name: Upload combined summary
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: legacy-tc01-tc21-summary-${{ github.run_id }}
+          path: legacy-tc01-tc21-summary.txt
+          if-no-files-found: error
