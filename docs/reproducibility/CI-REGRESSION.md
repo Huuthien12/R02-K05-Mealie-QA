@@ -6,7 +6,7 @@ Status reviewed: **2026-10-24**.
 |---|---|---|
 | P0 offline inventory and selection | GITHUB VERIFIED | `P0 contract regression #1` completed successfully for commit `fc4f6b3`; this did not call Mealie. |
 | Legacy TC-01..TC-21 offline inventory | STATIC VALIDATED | Workflow is present on `main`; no GitHub run was visible during this review. |
-| GitHub-hosted authenticated P0 (TC-01..TC-11) | IMPLEMENTED / STATIC VALIDATED | [mealie-p0-hosted.yml](../../.github/workflows/mealie-p0-hosted.yml) creates a fresh Mealie SQLite instance and temporary credential on `ubuntu-24.04`; no GitHub run has verified it yet. |
+| GitHub-hosted authenticated P0 (TC-01..TC-11) | IMPLEMENTED / STATIC VALIDATED | Run #1 reached Docker startup but failed before bootstrap/P0 because its image digest contained a typo; the corrected immutable linux/amd64 digest is preflighted before startup. A successful authenticated run is still required for `GITHUB VERIFIED`. |
 | Authenticated P0 on self-hosted QA | RETIRED / NOT VERIFIED | The ACER runner was removed because this public repository must not rely on a persistent workstation runner. |
 | Legacy P1 on disposable QA | NOT VERIFIED / BLOCKED | No independently isolated disposable instance or runner could be verified. |
 
@@ -110,6 +110,7 @@ If the workflow is red because a known defect reproduces, keep the red verdict, 
 
 - Default branch is `main`; this branch is not merged into it.
 - GitHub CLI authentication was invalid during the review, so Environment, runner online state, branch protection, and a Draft PR could not be inspected or changed.
-- No GitHub-hosted run has yet pulled the pinned image, verified the runtime, bootstrapped the disposable user, or produced `hosted-p0.xml`; `GITHUB VERIFIED` must wait for that run.
+- GitHub-hosted run #1 failed before Mealie startup with Docker exit 125 (`manifest unknown`): the workflow had `...d06ef7e7...` instead of the resolved linux/amd64 digest `...d06ef7a7...`. It did not bootstrap credentials or execute pytest, so the missing JUnit was a secondary consequence rather than a test result.
+- The corrected workflow preflights `docker manifest inspect` and `docker pull` and records their non-sensitive result in metadata; `GITHUB VERIFIED` must wait for a successful authenticated rerun.
 - The release image digest was resolved from the `v3.28.0` manifest, but release-image-to-source-commit provenance was not independently established.
 - P1 remains blocked until a disposable environment is demonstrated.
