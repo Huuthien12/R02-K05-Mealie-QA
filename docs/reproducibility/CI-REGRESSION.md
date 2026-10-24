@@ -1,12 +1,13 @@
 # CI and Regression Operations
 
-Status reviewed: **2026-10-23**.
+Status reviewed: **2026-10-24**.
 
 | Capability | Status | Evidence / limitation |
 |---|---|---|
 | P0 offline inventory and selection | GITHUB VERIFIED | `P0 contract regression #1` completed successfully for commit `fc4f6b3`; this did not call Mealie. |
-| Legacy TC-01..TC-21 offline inventory | STATIC VALIDATED | Workflow exists on `test/expand-tc22-tc37`; no GitHub run was visible during this review. |
-| Authenticated P0 on self-hosted QA | NOT VERIFIED / BLOCKED | No local runner installation or online runner could be verified. |
+| Legacy TC-01..TC-21 offline inventory | STATIC VALIDATED | Workflow is present on `main`; no GitHub run was visible during this review. |
+| GitHub-hosted authenticated P0 (TC-01..TC-11) | IMPLEMENTED / STATIC VALIDATED | [mealie-p0-hosted.yml](../../.github/workflows/mealie-p0-hosted.yml) creates a fresh Mealie SQLite instance and temporary credential on `ubuntu-24.04`; no GitHub run has verified it yet. |
+| Authenticated P0 on self-hosted QA | RETIRED / NOT VERIFIED | The ACER runner was removed because this public repository must not rely on a persistent workstation runner. |
 | Legacy P1 on disposable QA | NOT VERIFIED / BLOCKED | No independently isolated disposable instance or runner could be verified. |
 
 `IMPLEMENTED` means the configuration exists. `STATIC VALIDATED` means local syntax/inventory checks passed. `GITHUB VERIFIED` requires an actual GitHub Actions run. An offline green job is not evidence that authenticated API tests ran.
@@ -19,6 +20,22 @@ Status reviewed: **2026-10-23**.
 
 1. `offline-contract-check` runs on relevant pushes and pull requests on `ubuntu-24.04`. It installs pinned dependencies, collects the repository inventory, checks P0 operation selection, and uploads JUnit evidence.
 2. `qa-p0-contract-campaign` runs only after manual dispatch with `run_qa_p0=true`, on the protected Windows runner labels `self-hosted`, `windows`, `mealie-qa`, and with GitHub Environment `qa`.
+
+### GitHub-hosted Mealie P0 regression
+
+[mealie-p0-hosted.yml](../../.github/workflows/mealie-p0-hosted.yml) is the authenticated API campaign for **TC-01..TC-11 only**. It has no `push` or `pull_request` trigger and its sole job is guarded by `github.ref == 'refs/heads/main'`; consequently, an unreviewed pull request cannot start a container with credentials or execute API tests.
+
+The `ubuntu-24.04` job pulls the immutable Linux/amd64 digest selected from `ghcr.io/mealie-recipes/mealie:v3.28.0`, creates a job-unique Docker volume mounted at `/app/data`, and starts Mealie with SQLite and `ALLOW_SIGNUP=true`. It waits, with a finite timeout, for `/api/app/about` and `/openapi.json`, verifies runtime `3.28.0`/`v3.28.0` and OpenAPI `3.1.0`, then removes both container and job-created volume in an `always()` cleanup step.
+
+The job creates a random user/password only in the runner, registers it through the documented snapshot endpoint `POST /api/users/register`, obtains a short-lived bearer token from `POST /api/auth/token`, masks the values, and verifies `GET /api/users/self`. No personal token, DPAPI data, GitHub secret, or credential file is used or retained in an artifact. It then runs the fixed eleven P0 pytest items and writes:
+
+- `reports/ci/hosted-p0.xml` — JUnit evidence for TC-01..TC-11.
+- `reports/ci/hosted-p0-summary.txt` — PASS/FAIL/SKIP/ERROR totals shown in the run summary.
+- `reports/ci/hosted-p0-metadata.txt` — run SHA, time, image digest/tag, runtime version, API version, and non-sensitive bootstrap statuses.
+
+All artifacts upload even after pytest failures. Known DEF-01..DEF-03 failures remain red; the workflow restores the genuine pytest failure status after collecting evidence. This is P0 read-only only: it never runs TC-12..TC-21 or any P1 write operation.
+
+The digest is immutable deployment evidence for the published `v3.28.0` manifest. It does not independently prove that the published image was built from source commit `0552eaa4a80031b8572849cca0ed95d07f1be001`; the workflow records that expected baseline as metadata and treats source-commit provenance as a documented limitation.
 
 ### Legacy TC-01 through TC-21 API regression
 
@@ -44,9 +61,11 @@ All third-party actions are pinned to verified 40-character release SHAs:
 
 Node 24 actions require Actions Runner `v2.327.1` or later. GitHub-hosted `ubuntu-24.04` runners are managed by GitHub. Before enabling either self-hosted job, verify its installed runner version in **Settings > Actions > Runners** and upgrade it if it is below the minimum. Re-verify the SHAs against official GitHub releases during the next dependency update; do not replace them with moving major tags.
 
-## Protected `qa` environment
+## Protected `qa` environment (legacy self-hosted workflows)
 
-Create **Settings > Environments > New environment > `qa`**, then configure:
+The GitHub-hosted P0 workflow above does **not** use this environment or any secret. The following configuration belongs only to retained legacy self-hosted workflows; do not recreate the removed ACER runner merely to use it.
+
+If those legacy workflows are ever reconsidered, create **Settings > Environments > New environment > `qa`**, then configure:
 
 | Type | Name | Required value / purpose |
 |---|---|---|
@@ -57,11 +76,11 @@ Create **Settings > Environments > New environment > `qa`**, then configure:
 
 Add required reviewers and restrict deployment branches to reviewed branches. Keep `permissions: contents: read`. Environment approval protects secrets, but it does not make a persistent runner clean or safe by itself.
 
-## Self-hosted runner security
+## Self-hosted runner security (retired path)
 
 This repository is publicly readable. GitHub warns that persistent self-hosted runners can be compromised by untrusted pull-request code. Do not install either runner on a primary workstation containing other projects, browser sessions, DPAPI material, SSH keys, cloud credentials, or personal data.
 
-Use a dedicated VM or machine, a non-administrator service account, an allowlisted runner group, outbound access limited to GitHub and the local QA service, and no production credentials. The jobs are manual and do not run on pull requests, but workflow files must still be reviewed before dispatch because they execute repository code.
+Use a dedicated VM or machine, a non-administrator service account, an allowlisted runner group, outbound access limited to GitHub and the local QA service, and no production credentials only if this retired path is formally approved again. The jobs are manual and do not run on pull requests, but workflow files must still be reviewed before dispatch because they execute repository code.
 
 ### P0 runner checklist
 
@@ -82,9 +101,8 @@ Use a separate ephemeral VM and a fresh Mealie database/volume that contains no 
 After these workflow files reach the default branch (`main`):
 
 1. Open **Actions**, select the workflow, and choose **Run workflow**.
-2. Select the reviewed branch. For P0, set `run_qa_p0=true` or `run_p0=true`. For P1, set `run_p1=true` and `confirm_disposable_qa=true` only after the disposable checklist is independently satisfied.
-3. Approve the `qa` Environment deployment when prompted.
-4. Open the completed run's **Artifacts** section. Download `p0-offline-junit`, `p0-qa-junit`, `legacy-tc01-tc11-p0-*`, `legacy-tc12-tc21-p1-*`, or the combined summary as applicable.
+2. For GitHub-hosted P0, select **GitHub-hosted Mealie P0 regression** and select `main`. Its branch guard skips any other branch; it needs no environment approval or secret. Download `mealie-hosted-p0-<run-id>` from **Artifacts** and inspect `hosted-p0.xml` to prove the eleven items ran.
+3. The remaining P0/P1 dispatch inputs (`run_qa_p0`, `run_p0`, `run_p1`, and `confirm_disposable_qa`) describe the retained self-hosted workflows, which are not enabled by the GitHub-hosted campaign.
 
 If the workflow is red because a known defect reproduces, keep the red verdict, attach the JUnit artifact to the defect evidence, compare endpoint/status/schema with the pinned OpenAPI snapshot, and update reproduction counts without duplicating the defect.
 
@@ -92,5 +110,6 @@ If the workflow is red because a known defect reproduces, keep the red verdict, 
 
 - Default branch is `main`; this branch is not merged into it.
 - GitHub CLI authentication was invalid during the review, so Environment, runner online state, branch protection, and a Draft PR could not be inspected or changed.
-- No self-hosted runner installation was detected locally, and no GitHub-side runner version was available for verification.
-- P0 and P1 authenticated jobs have not run on GitHub. P1 remains blocked until a disposable environment is demonstrated.
+- No GitHub-hosted run has yet pulled the pinned image, verified the runtime, bootstrapped the disposable user, or produced `hosted-p0.xml`; `GITHUB VERIFIED` must wait for that run.
+- The release image digest was resolved from the `v3.28.0` manifest, but release-image-to-source-commit provenance was not independently established.
+- P1 remains blocked until a disposable environment is demonstrated.
