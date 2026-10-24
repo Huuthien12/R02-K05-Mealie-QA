@@ -472,12 +472,12 @@ Phụ lục này bổ sung traceability cho 16 pytest item mới. Nó không s�
 | TC-28 | REQ-MLP-06, REQ-COM-02/06 | `test_tc26_tc29_mealplans.py` | IMPLEMENTED | FAIL — DELETE missing ID 404, DEF-03 extension |
 | TC-29 | REQ-MLP-05/07, REQ-COM-02/06 | `test_tc26_tc29_mealplans.py` | IMPLEMENTED | PASS |
 | TC-30 | REQ-ITM-04/06, REQ-COM-02/06 | `test_tc30_tc33_shopping_items.py` | IMPLEMENTED | PASS |
-| TC-31 | REQ-ITM-03/06, REQ-COM-02/06 | `test_tc30_tc33_shopping_items.py` | IMPLEMENTED | FAIL — 500, DEF-05 candidate |
+| TC-31 | REQ-ITM-03/06, REQ-COM-02/06 | `test_tc30_tc33_shopping_items.py` | IMPLEMENTED | FAIL — 500, DEF-05 reproduced 2/2 |
 | TC-32 | REQ-ITM-04, REQ-COM-06 | `test_tc30_tc33_shopping_items.py` | IMPLEMENTED | PASS |
 | TC-33 | REQ-ITM-03/04/05, REQ-COM-06 | `test_tc30_tc33_shopping_items.py` | IMPLEMENTED | PASS |
-| TC-34 | REQ-REC-03/04, REQ-COM-02/06 | `test_tc34_tc37_recipes.py` | IMPLEMENTED | FAIL — partial PUT 500, DEF-06 candidate |
+| TC-34 | REQ-REC-03/04, REQ-COM-02/06 | `test_tc34_tc37_recipes.py` | IMPLEMENTED | FAIL — partial PUT 500, DEF-06 reproduced 2/2 |
 | TC-35 | REQ-REC-03/04, REQ-COM-02/06 | `test_tc34_tc37_recipes.py` | FIXED, VERIFIED | PASS — returned slug used after PATCH; TEST-07 resolved |
-| TC-36 | REQ-REC-05, REQ-COM-02/04/06 | `test_tc34_tc37_recipes.py` | IMPLEMENTED | FAIL — whitespace POST 400, DEF-07 candidate |
+| TC-36 | REQ-REC-05, REQ-COM-02/04/06 | `test_tc34_tc37_recipes.py` | IMPLEMENTED | FAIL — whitespace POST 400, DEF-07 reproduced 2/2 |
 | TC-37 | REQ-REC-03/05, REQ-COM-02/04/06 | `test_tc34_tc37_recipes.py` | IMPLEMENTED | PASS |
 
 `pytest --collect-only -q` verified 37 items (21 historical + 16 new). The retained 2026-10-22 expansion JUnit records 9 PASS / 7 FAIL. The post-fix JUnit `reports/local-runs/tc22-tc37-20261023-215442-705.xml` records 10 PASS, 6 FAIL, 0 SKIP, 0 ERROR and verifies TC-35. These campaigns do not replace historical TC-01…TC-21 evidence. A post-run marker audit found two historical TC-35 recipes, deleted only those verified test resources with HTTP 200, and confirmed zero remaining `K05-TC-` resources across the four expansion areas.

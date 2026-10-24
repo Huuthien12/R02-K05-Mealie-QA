@@ -59,5 +59,5 @@ Coverage is expressed as exercised behavior, not as test count divided by requir
 - The 37-item inventory, Python compilation, dependency integrity and offline P0 selection are suitable for push/PR regression.
 - Authenticated P0 remains manual on the protected self-hosted QA runner and intentionally reports DEF-01…DEF-03 as failures.
 - P1 TC-22…TC-37 remains manual and disposable-QA only.
-- GitHub Actions is **IMPLEMENTED NOT VERIFIED** until an actual workflow run completes.
+- GitHub Actions offline checks are **GITHUB VERIFIED** after the successful Node 24 workflow run; authenticated P0 and disposable P1 remain **NOT VERIFIED / BLOCKED** until their protected QA runners execute them.
 - Runtime source was pinned to Mealie `v3.28.0` / commit `0552eaa4a80031b8572849cca0ed95d07f1be001`; the local `mealie:dev` image has no revision label, so independent image provenance is not established.

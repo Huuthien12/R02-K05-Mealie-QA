@@ -40,9 +40,9 @@
 
 > **Cân bằng công việc:** Mỗi người 4 test, nhưng công sức ước lượng không bằng nhau (Thiện 9h, Long 10h, Quân 12h, Thọ 13h; tổng 44h). Có thể dành 4h bổ sung cho review chung để khớp kế hoạch nguồn lực 48h, sau đó phân bổ lại theo khó khăn thực tế. Đây là **ước lượng đề xuất**, chưa phải giờ công đã ghi nhận.
 
-## 3. Đặc tả chi tiết TC-22…TC-37
+## 3. Đặc tả thiết kế ban đầu TC-22…TC-37
 
-Định nghĩa chung: **C** = điều kiện kiểm tra trực tiếp từ hợp đồng OpenAPI; **T** = kịch bản nghiệp vụ do nhóm chọn hoặc dự kiến cần xác nhận. Không sửa `Expected` theo `Actual`. Severity của defect chỉ được chốt **sau khi phát hiện và triage**; cột “rủi ro” dưới đây chỉ là **ưu tiên thiết kế test**.
+Định nghĩa chung: **C** = điều kiện kiểm tra trực tiếp từ hợp đồng OpenAPI; **T** = kịch bản nghiệp vụ do nhóm chọn hoặc dự kiến cần xác nhận. Không sửa `Expected` theo `Actual`. Severity của defect chỉ được chốt **sau khi phát hiện và triage**; cột “rủi ro” dưới đây chỉ là **ưu tiên thiết kế test**. Nội dung các case bên dưới được giữ như thiết kế ban đầu; verdict hiện hành là JUnit post-fix ngày 23/10/2026 ở mục 7.
 
 ### TC-22 – POST tên chỉ có khoảng trắng
 
@@ -57,7 +57,7 @@
 - **Bộ chạy đề xuất:** `P1-isolated`.
 - **Lưu ý tránh trùng/rủi ro:** Mới so với TC-20: `""` khác `"   "`; không ép 422 nếu chưa được phê duyệt..
 - **Bằng chứng cần lưu khi chạy:** ID, commit SUT+QA, request rút gọn đã ẩn token, status/body, assertion, cleanup, JUnit XML, defect hoặc OBS nếu có.
-- **Trạng thái:** `PLANNED` (chưa viết/chưa chạy).
+- **Trạng thái hiện hành:** `IMPLEMENTED / EXECUTED — PASS` theo JUnit post-fix 23/10/2026.
 
 ### TC-23 – POST/GET tên Unicode tiếng Việt
 
@@ -72,7 +72,7 @@
 - **Bộ chạy đề xuất:** `P1-isolated`.
 - **Lưu ý tránh trùng/rủi ro:** Thêm kiểm tra tính toàn vẹn Unicode thay vì lặp happy path ASCII..
 - **Bằng chứng cần lưu khi chạy:** ID, commit SUT+QA, request rút gọn đã ẩn token, status/body, assertion, cleanup, JUnit XML, defect hoặc OBS nếu có.
-- **Trạng thái:** `PLANNED` (chưa viết/chưa chạy).
+- **Trạng thái hiện hành:** `IMPLEMENTED / EXECUTED — PASS` theo JUnit post-fix 23/10/2026.
 
 ### TC-24 – PUT tới UUID không tồn tại
 
@@ -87,7 +87,7 @@
 - **Bộ chạy đề xuất:** `P1-isolated`.
 - **Lưu ý tránh trùng/rủi ro:** Không thực hiện PUT lên ID của dữ liệu thật..
 - **Bằng chứng cần lưu khi chạy:** ID, commit SUT+QA, request rút gọn đã ẩn token, status/body, assertion, cleanup, JUnit XML, defect hoặc OBS nếu có.
-- **Trạng thái:** `PLANNED` (chưa viết/chưa chạy).
+- **Trạng thái hiện hành:** `IMPLEMENTED / EXECUTED — FAIL`, documented-response mismatch `404` (DEF-03 extension) theo JUnit post-fix 23/10/2026.
 
 ### TC-25 – DELETE cùng list QA lần thứ hai
 
@@ -102,7 +102,7 @@
 - **Bộ chạy đề xuất:** `P1-isolated`.
 - **Lưu ý tránh trùng/rủi ro:** Khác TC-21: kiểm tra tính lặp của thao tác xóa..
 - **Bằng chứng cần lưu khi chạy:** ID, commit SUT+QA, request rút gọn đã ẩn token, status/body, assertion, cleanup, JUnit XML, defect hoặc OBS nếu có.
-- **Trạng thái:** `PLANNED` (chưa viết/chưa chạy).
+- **Trạng thái hiện hành:** `IMPLEMENTED / EXECUTED — FAIL`, documented-response mismatch `404` (DEF-03 extension) theo JUnit post-fix 23/10/2026.
 
 ### TC-26 – GET khoảng ngày đảo ngược
 
@@ -117,7 +117,7 @@
 - **Bộ chạy đề xuất:** `P0-safe`.
 - **Lưu ý tránh trùng/rủi ro:** Dữ liệu cụ thể có kiểm soát, khác dữ liệu random từ TC-03..
 - **Bằng chứng cần lưu khi chạy:** ID, commit SUT+QA, request rút gọn đã ẩn token, status/body, assertion, cleanup, JUnit XML, defect hoặc OBS nếu có.
-- **Trạng thái:** `PLANNED` (chưa viết/chưa chạy).
+- **Trạng thái hiện hành:** `IMPLEMENTED / EXECUTED — PASS` theo JUnit post-fix 23/10/2026.
 
 ### TC-27 – PUT hai lần và xác minh trạng thái cuối
 
@@ -132,7 +132,7 @@
 - **Bộ chạy đề xuất:** `P1-isolated`.
 - **Lưu ý tránh trùng/rủi ro:** Mới so với single-update TC-13..
 - **Bằng chứng cần lưu khi chạy:** ID, commit SUT+QA, request rút gọn đã ẩn token, status/body, assertion, cleanup, JUnit XML, defect hoặc OBS nếu có.
-- **Trạng thái:** `PLANNED` (chưa viết/chưa chạy).
+- **Trạng thái hiện hành:** `IMPLEMENTED / EXECUTED — PASS` theo JUnit post-fix 23/10/2026.
 
 ### TC-28 – DELETE meal plan ID số nguyên không tồn tại
 
@@ -147,7 +147,7 @@
 - **Bộ chạy đề xuất:** `P1-isolated`.
 - **Lưu ý tránh trùng/rủi ro:** Không sử dụng ID bất kỳ chưa chứng minh không tồn tại..
 - **Bằng chứng cần lưu khi chạy:** ID, commit SUT+QA, request rút gọn đã ẩn token, status/body, assertion, cleanup, JUnit XML, defect hoặc OBS nếu có.
-- **Trạng thái:** `PLANNED` (chưa viết/chưa chạy).
+- **Trạng thái hiện hành:** `IMPLEMENTED / EXECUTED — FAIL`, documented-response mismatch `404` (DEF-03 extension) theo JUnit post-fix 23/10/2026.
 
 ### TC-29 – PUT ngày sai định dạng và kiểm tra tính toàn vẹn
 
@@ -162,7 +162,7 @@
 - **Bộ chạy đề xuất:** `P1-isolated`.
 - **Lưu ý tránh trùng/rủi ro:** Khác POST invalid-date đã kiểm thử trong TC-12..
 - **Bằng chứng cần lưu khi chạy:** ID, commit SUT+QA, request rút gọn đã ẩn token, status/body, assertion, cleanup, JUnit XML, defect hoặc OBS nếu có.
-- **Trạng thái:** `PLANNED` (chưa viết/chưa chạy).
+- **Trạng thái hiện hành:** `IMPLEMENTED / EXECUTED — PASS` theo JUnit post-fix 23/10/2026.
 
 ### TC-30 – PUT quantity âm và xác minh dữ liệu
 
@@ -177,7 +177,7 @@
 - **Bộ chạy đề xuất:** `P1-isolated`.
 - **Lưu ý tránh trùng/rủi ro:** POST âm và PUT âm là hai nghiệp vụ khác nhau..
 - **Bằng chứng cần lưu khi chạy:** ID, commit SUT+QA, request rút gọn đã ẩn token, status/body, assertion, cleanup, JUnit XML, defect hoặc OBS nếu có.
-- **Trạng thái:** `PLANNED` (chưa viết/chưa chạy).
+- **Trạng thái hiện hành:** `IMPLEMENTED / EXECUTED — PASS` theo JUnit post-fix 23/10/2026.
 
 ### TC-31 – POST item với parent UUID hợp lệ nhưng không tồn tại
 
@@ -192,7 +192,7 @@
 - **Bộ chạy đề xuất:** `P1-isolated`.
 - **Lưu ý tránh trùng/rủi ro:** Tách rõ invalid format và valid format nhưng thiếu record..
 - **Bằng chứng cần lưu khi chạy:** ID, commit SUT+QA, request rút gọn đã ẩn token, status/body, assertion, cleanup, JUnit XML, defect hoặc OBS nếu có.
-- **Trạng thái:** `PLANNED` (chưa viết/chưa chạy).
+- **Trạng thái hiện hành:** `IMPLEMENTED / EXECUTED — FAIL`, HTTP `500` (DEF-05) theo JUnit post-fix 23/10/2026.
 
 ### TC-32 – Đổi checked true → false, GET xác minh
 
@@ -207,7 +207,7 @@
 - **Bộ chạy đề xuất:** `P1-isolated`.
 - **Lưu ý tránh trùng/rủi ro:** Khác chiều cập nhật checked trong TC-17..
 - **Bằng chứng cần lưu khi chạy:** ID, commit SUT+QA, request rút gọn đã ẩn token, status/body, assertion, cleanup, JUnit XML, defect hoặc OBS nếu có.
-- **Trạng thái:** `PLANNED` (chưa viết/chưa chạy).
+- **Trạng thái hiện hành:** `IMPLEMENTED / EXECUTED — PASS` theo JUnit post-fix 23/10/2026.
 
 ### TC-33 – Chuyển item giữa hai danh sách QA
 
@@ -222,7 +222,7 @@
 - **Bộ chạy đề xuất:** `P1-isolated`.
 - **Lưu ý tránh trùng/rủi ro:** Cần kiểm tra quyền/chính sách chuyển parent trước khi chốt assertion business..
 - **Bằng chứng cần lưu khi chạy:** ID, commit SUT+QA, request rút gọn đã ẩn token, status/body, assertion, cleanup, JUnit XML, defect hoặc OBS nếu có.
-- **Trạng thái:** `PLANNED` (chưa viết/chưa chạy).
+- **Trạng thái hiện hành:** `IMPLEMENTED / EXECUTED — PASS` theo JUnit post-fix 23/10/2026.
 
 ### TC-34 – PUT cập nhật Recipe QA (gap chính)
 
@@ -237,7 +237,7 @@
 - **Bộ chạy đề xuất:** `P1-isolated`.
 - **Lưu ý tránh trùng/rủi ro:** RỦI RO TRIỂN KHAI: chưa cung cấp cấu trúc Recipe-Input chi tiết; tuyệt đối không bịa body..
 - **Bằng chứng cần lưu khi chạy:** ID, commit SUT+QA, request rút gọn đã ẩn token, status/body, assertion, cleanup, JUnit XML, defect hoặc OBS nếu có.
-- **Trạng thái:** `PLANNED` (chưa viết/chưa chạy).
+- **Trạng thái hiện hành:** `IMPLEMENTED / EXECUTED — FAIL`, HTTP `500 ValidationError` (DEF-06) theo JUnit post-fix 23/10/2026.
 
 ### TC-35 – PATCH cập nhật từng phần Recipe QA
 
@@ -252,7 +252,7 @@
 - **Bộ chạy đề xuất:** `P1-isolated`.
 - **Lưu ý tránh trùng/rủi ro:** Không giả định PATCH chấp nhận JSON Merge Patch nếu OpenAPI không quy định..
 - **Bằng chứng cần lưu khi chạy:** ID, commit SUT+QA, request rút gọn đã ẩn token, status/body, assertion, cleanup, JUnit XML, defect hoặc OBS nếu có.
-- **Trạng thái:** `PLANNED` (chưa viết/chưa chạy).
+- **Trạng thái hiện hành:** `IMPLEMENTED / EXECUTED — PASS`; TEST-07 fixed/verified by using the slug returned by PATCH, theo JUnit post-fix 23/10/2026.
 
 ### TC-36 – POST name chỉ có khoảng trắng
 
@@ -267,7 +267,7 @@
 - **Bộ chạy đề xuất:** `P1-isolated`.
 - **Lưu ý tránh trùng/rủi ro:** Không đồng nhất chuỗi rỗng với chuỗi chứa khoảng trắng..
 - **Bằng chứng cần lưu khi chạy:** ID, commit SUT+QA, request rút gọn đã ẩn token, status/body, assertion, cleanup, JUnit XML, defect hoặc OBS nếu có.
-- **Trạng thái:** `PLANNED` (chưa viết/chưa chạy).
+- **Trạng thái hiện hành:** `IMPLEMENTED / EXECUTED — FAIL`, undocumented HTTP `400` (DEF-07) theo JUnit post-fix 23/10/2026.
 
 ### TC-37 – POST tên dài 256 ký tự
 
@@ -282,7 +282,7 @@
 - **Bộ chạy đề xuất:** `P1-isolated`.
 - **Lưu ý tránh trùng/rủi ro:** Không khẳng định schema đặt maxLength khi chưa có bằng chứng..
 - **Bằng chứng cần lưu khi chạy:** ID, commit SUT+QA, request rút gọn đã ẩn token, status/body, assertion, cleanup, JUnit XML, defect hoặc OBS nếu có.
-- **Trạng thái:** `PLANNED` (chưa viết/chưa chạy).
+- **Trạng thái hiện hành:** `IMPLEMENTED / EXECUTED — PASS` theo JUnit post-fix 23/10/2026.
 
 ## 4. Điều kiện trước khi viết mã
 
@@ -304,19 +304,19 @@
 
 - Giữ nguyên 33 yêu cầu FS-01 của baseline và 21 verdict lịch sử RTM-01.
 - Đề xuất 16 ID mở rộng `QA-LST-01…04`, `QA-MLP-01…04`, `QA-ITM-01…04`, `QA-REC-01…04`: đây là **đề xuất kiểm thử** từ khoảng trống, không phải 16 yêu cầu chính thức mới của tác giả Mealie.
-- Trong RTM đánh dấu 16 dòng `PLANNED`, các cột ACTUAL/VERDICT/evidence là `CHƯA CHẠY`/`—`. Sau khi review và chạy mới cấp execution ID và lưu vào JUnit của phiên mới.
+- Trong bản kế hoạch ban đầu, RTM dự kiến đánh dấu 16 dòng `PLANNED`, các cột ACTUAL/VERDICT/evidence là `CHƯA CHẠY`/`—`. Kế hoạch này đã được thay thế bởi kết quả thực thi lưu trong JUnit ngày 23/10/2026 và RTM hiện hành.
 - Khi bản mới được duyệt: thêm mapping vào RTM bản mới và tăng version FS/RTM, không thay đổi dữ liệu baseline v1.0.
 
 ## 7. Cập nhật triển khai (TC-22…TC-37)
 
-Ngày cập nhật: 2026-10-23. Phần này thay thế trạng thái `PLANNED` của 16 case ở trên về **mức mã nguồn**; không thay thế kết quả lịch sử TC-01…TC-21.
+Ngày cập nhật: 2026-10-23. Phần này thay thế trạng thái thiết kế ban đầu của 16 case bằng trạng thái **mã nguồn và thực thi**; không thay thế kết quả lịch sử TC-01…TC-21.
 
 | Tests | File pytest | Trạng thái mã | Trạng thái thực thi |
 |---|---|---|---|
 | TC-22…TC-25 | `tests/schemathesis/test_tc22_tc25_shopping_lists.py` | IMPLEMENTED | 2 PASS / 2 FAIL (DEF-03 extension) |
 | TC-26…TC-29 | `tests/schemathesis/test_tc26_tc29_mealplans.py` | IMPLEMENTED | 3 PASS / 1 FAIL (DEF-03 extension) |
-| TC-30…TC-33 | `tests/schemathesis/test_tc30_tc33_shopping_items.py` | IMPLEMENTED | 3 PASS / 1 FAIL (DEF-05 candidate) |
-| TC-34…TC-37 | `tests/schemathesis/test_tc34_tc37_recipes.py` | IMPLEMENTED; TEST-07 fixed/verified | 2 PASS / 2 FAIL (DEF-06/07) |
+| TC-30…TC-33 | `tests/schemathesis/test_tc30_tc33_shopping_items.py` | IMPLEMENTED | 3 PASS / 1 FAIL (DEF-05 reproduced 2/2) |
+| TC-34…TC-37 | `tests/schemathesis/test_tc34_tc37_recipes.py` | IMPLEMENTED; TEST-07 fixed/verified | 2 PASS / 2 FAIL (DEF-06/07 reproduced 2/2) |
 
 - `pytest --collect-only -q` thu thập 37 items: 21 historical và đúng 16 item mới.
 - Historical expansion evidence `reports/local-runs/tc22-tc37-20261022-164618-697.xml` ghi 9 PASS / 7 FAIL. Post-fix evidence `reports/local-runs/tc22-tc37-20261023-215442-705.xml` ghi 10 PASS, 6 FAIL, 0 SKIP, 0 ERROR. TC-24/25/28 tiếp tục là DEF-03; DEF-05/06/07 tái hiện 2/2; TC-35 PASS xác nhận TEST-07 đã sửa ở harness.
