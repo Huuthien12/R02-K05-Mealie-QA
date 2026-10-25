@@ -7,9 +7,10 @@ Status reviewed: **2026-10-25**.
 | P0 offline inventory and selection | GITHUB VERIFIED | `P0 contract regression #1` completed successfully for commit `fc4f6b3`; this did not call Mealie. |
 | Legacy TC-01..TC-21 offline inventory | STATIC VALIDATED | Workflow is present on `main`; no GitHub run was visible during this review. |
 | GitHub-hosted authenticated P0 (TC-01..TC-11) | GITHUB VERIFIED | [Run #2](https://github.com/Huuthien12/R02-K05-Mealie-QA/actions/runs/40087491627) completed startup, ephemeral authentication, and all 11 items: 4 PASS, 7 known-defect FAIL, 0 SKIP, 0 ERROR. |
-| GitHub-hosted disposable P1 (TC-12..TC-21) | IMPLEMENTED / STATIC VALIDATED | [mealie-p1-hosted.yml](../../.github/workflows/mealie-p1-hosted.yml) creates a job-only SQLite database, verifies empty pre/post P1 collections, and uploads cleanup evidence; no GitHub run has verified it yet. |
+| GitHub-hosted disposable P1 (TC-12..TC-21) | GITHUB VERIFIED | [Run #40154237009](https://github.com/Huuthien12/R02-K05-Mealie-QA/actions/runs/40154237009) completed 10 items: 9 PASS, 1 DEF-04 FAIL, 0 SKIP, 0 ERROR. Its four-collection pre/post audit was empty and job-only container/volume teardown completed. |
+| GitHub-hosted disposable expansion (TC-22..TC-37) | IMPLEMENTED / STATIC VALIDATED | [mealie-tc22-tc37-hosted.yml](../../.github/workflows/mealie-tc22-tc37-hosted.yml) is a separately gated 16-item campaign; it needs an actual dispatched run before it can be marked verified. |
 | Authenticated P0 on self-hosted QA | RETIRED / NOT VERIFIED | The ACER runner was removed because this public repository must not rely on a persistent workstation runner. |
-| Legacy P1 on disposable QA | NOT VERIFIED / BLOCKED | No independently isolated disposable instance or runner could be verified. |
+| Legacy self-hosted P1 on disposable QA | RETIRED / NOT VERIFIED | The legacy self-hosted path remains retired; this does not alter the separately verified GitHub-hosted P1 run. |
 
 `IMPLEMENTED` means the configuration exists. `STATIC VALIDATED` means local syntax/inventory checks passed. `GITHUB VERIFIED` requires an actual GitHub Actions run. An offline green job is not evidence that authenticated API tests ran.
 
@@ -55,7 +56,19 @@ JUnit totals are **4 PASS, 7 FAIL, 0 SKIP, 0 ERROR**. The red workflow conclusio
 
 [mealie-p1-hosted.yml](../../.github/workflows/mealie-p1-hosted.yml) is a separate, manual TC-12..TC-21 campaign. It is guarded by the default branch and `confirm_disposable_p1=true`; it never runs on `push` or `pull_request`. The workflow uses a job-unique SQLite Docker volume, requires the four P1 resource collections to be empty before the campaign, checks those collections again after pytest, records that evidence, and then removes only the exact job-created container and volume.
 
-The ten historical P1 items retain their existing assertions, including the intentional DEF-04 reproduction. Their `finally` handlers clean tracked resource identifiers; the workflow's fresh-volume teardown provides an additional isolation boundary if a test cleanup path fails. A test or cleanup failure remains a failed job after artifact upload. This workflow is **IMPLEMENTED / STATIC VALIDATED** only until a GitHub Actions run produces P1 JUnit and cleanup evidence.
+The ten historical P1 items retain their existing assertions, including the intentional DEF-04 reproduction. Their `finally` handlers clean tracked resource identifiers; the workflow's fresh-volume teardown provides an additional isolation boundary if a test cleanup path fails. A test or cleanup failure remains a failed job after artifact upload.
+
+[GitHub-hosted Mealie P1 regression #40154237009](https://github.com/Huuthien12/R02-K05-Mealie-QA/actions/runs/40154237009) executed the ten historical P1 items against a fresh, job-only SQLite volume. Its `mealie-hosted-p1-40154237009` artifact records release `v3.28.0`, OpenAPI `3.1.0`, successful ephemeral registration/token/self-check (`201`/`200`/`200`), and the following independent P1 result: **9 PASS, 1 FAIL, 0 SKIP, 0 ERROR**.
+
+The only failure was `test_recipe_empty_name_def04_reproduction`: the empty recipe-name request returned HTTP `500` in all three test attempts. This is the already tracked **DEF-04** reproduction. The run conclusion was therefore **FAILURE because pytest correctly preserved DEF-04**, not because of CI setup, Docker startup, bootstrap, authentication, JUnit generation, or artifact upload.
+
+The artifact's pre-campaign and post-campaign audit each report zero Recipes, Shopping Lists, Shopping Items, and Meal Plans. It also records removal of the job-named Docker container and volume. This verifies cleanup only for the audited four collections and the run-owned Docker state; it does not establish general cleanup correctness for resources outside that audit. This one run is execution evidence, not a new controlled-reproduction series, so it does not increase DEF-04's reproduction count. P0's 11-item results and this P1 10-item campaign remain separate evidence sets; they are not presented as a combined 21-test run.
+
+### GitHub-hosted TC-22 through TC-37 expansion
+
+[mealie-tc22-tc37-hosted.yml](../../.github/workflows/mealie-tc22-tc37-hosted.yml) is a separate manual workflow for the sixteen expansion tests only. It runs solely from reviewed `main` code after `confirm_disposable_expansion=true`, creates a job-unique SQLite volume, registers a temporary QA user in the runner, and enables `MEALIE_RUN_P1_EXPANSION=1` only for the pytest step. It rejects non-empty pre/post audits for Recipes, Shopping Lists, Shopping Items, and Meal Plans; uploads JUnit, metadata, collection, and cleanup evidence even when tests fail; and then removes only its exact job-named container and volume.
+
+The workflow deliberately retains any reproduction of the six historical expansion failures associated with DEF-03, DEF-05, DEF-06, and DEF-07. It is **IMPLEMENTED / STATIC VALIDATED**, not GitHub verified, until a manual GitHub Actions run produces its artifact. The immutable release-image digest verifies a deployment artifact but does not independently prove source-commit provenance for `0552eaa4a80031b8572849cca0ed95d07f1be001`.
 
 ### Legacy TC-01 through TC-21 API regression
 
@@ -133,4 +146,5 @@ If the workflow is red because a known defect reproduces, keep the red verdict, 
 - GitHub CLI authentication was invalid during the review, so Environment, runner online state, branch protection, and a Draft PR could not be inspected or changed.
 - GitHub-hosted run #1 failed before Mealie startup with Docker exit 125 (`manifest unknown`) because the workflow had `...d06ef7e7...` instead of `...d06ef7a7...`; run #2 verified the correction and retained the expected known-defect verdicts in JUnit.
 - The release image digest was resolved from the `v3.28.0` manifest, but release-image-to-source-commit provenance was not independently established.
-- GitHub-hosted P1 is static-only until its first manual `main` dispatch verifies the complete bootstrap, write, post-campaign data audit, and teardown path.
+- The hosted P1 disposable pattern is execution-verified in run #40154237009; its workflow source and expansion workflow still require normal review/merge sequencing on the default branch.
+- TC-22..TC-37 has no GitHub-hosted run yet, so its six historical failures are not reclassified by the new workflow.
