@@ -8,7 +8,7 @@ Status reviewed: **2026-10-25**.
 | Legacy TC-01..TC-21 offline inventory | STATIC VALIDATED | Workflow is present on `main`; no GitHub run was visible during this review. |
 | GitHub-hosted authenticated P0 (TC-01..TC-11) | GITHUB VERIFIED | [Run #2](https://github.com/Huuthien12/R02-K05-Mealie-QA/actions/runs/40087491627) completed startup, ephemeral authentication, and all 11 items: 4 PASS, 7 known-defect FAIL, 0 SKIP, 0 ERROR. |
 | GitHub-hosted disposable P1 (TC-12..TC-21) | GITHUB VERIFIED | [Run #40154237009](https://github.com/Huuthien12/R02-K05-Mealie-QA/actions/runs/40154237009) completed 10 items: 9 PASS, 1 DEF-04 FAIL, 0 SKIP, 0 ERROR. Its four-collection pre/post audit was empty and job-only container/volume teardown completed. |
-| GitHub-hosted disposable expansion (TC-22..TC-37) | IMPLEMENTED / STATIC VALIDATED | [mealie-tc22-tc37-hosted.yml](../../.github/workflows/mealie-tc22-tc37-hosted.yml) is a separately gated 16-item campaign; it needs an actual dispatched run before it can be marked verified. |
+| GitHub-hosted disposable expansion (TC-22..TC-37) | GITHUB VERIFIED | [Run #40155534891](https://github.com/Huuthien12/R02-K05-Mealie-QA/actions/runs/40155534891) completed 16 items: 10 PASS, 6 known-defect FAIL, 0 SKIP, 0 ERROR; its four-collection pre/post audit was empty and job-only teardown completed. |
 | Authenticated P0 on self-hosted QA | RETIRED / NOT VERIFIED | The ACER runner was removed because this public repository must not rely on a persistent workstation runner. |
 | Legacy self-hosted P1 on disposable QA | RETIRED / NOT VERIFIED | The legacy self-hosted path remains retired; this does not alter the separately verified GitHub-hosted P1 run. |
 
@@ -68,7 +68,22 @@ The artifact's pre-campaign and post-campaign audit each report zero Recipes, Sh
 
 [mealie-tc22-tc37-hosted.yml](../../.github/workflows/mealie-tc22-tc37-hosted.yml) is a separate manual workflow for the sixteen expansion tests only. It runs solely from reviewed `main` code after `confirm_disposable_expansion=true`, creates a job-unique SQLite volume, registers a temporary QA user in the runner, and enables `MEALIE_RUN_P1_EXPANSION=1` only for the pytest step. It rejects non-empty pre/post audits for Recipes, Shopping Lists, Shopping Items, and Meal Plans; uploads JUnit, metadata, collection, and cleanup evidence even when tests fail; and then removes only its exact job-named container and volume.
 
-The workflow deliberately retains any reproduction of the six historical expansion failures associated with DEF-03, DEF-05, DEF-06, and DEF-07. It is **IMPLEMENTED / STATIC VALIDATED**, not GitHub verified, until a manual GitHub Actions run produces its artifact. The immutable release-image digest verifies a deployment artifact but does not independently prove source-commit provenance for `0552eaa4a80031b8572849cca0ed95d07f1be001`.
+The workflow deliberately retains any reproduction of the six historical expansion failures associated with DEF-03, DEF-05, DEF-06, and DEF-07. [Run #40155534891](https://github.com/Huuthien12/R02-K05-Mealie-QA/actions/runs/40155534891), using workflow commit `ab00ba13a6c809d38b37aa007e8ba349d6dd06f9`, is **GITHUB VERIFIED**: immutable-image resolution/pull, runtime `v3.28.0`, OpenAPI `3.1.0`, temporary registration/token/self-check (`201`/`200`/`200`), all 16 items, and the cleanup evidence completed.
+
+Its JUnit artifact records **10 PASS, 6 FAIL, 0 SKIP, 0 ERROR**. TC-24, TC-25, and TC-28 returned undocumented `404` (DEF-03 extension); TC-31 returned `500` (DEF-05); TC-34 returned `500 ValidationError` (DEF-06); and TC-36 returned undocumented `400` (DEF-07). The red GitHub Actions conclusion is therefore the retained pytest/test verdict, not a Docker startup, bootstrap, authentication, JUnit, artifact, or cleanup failure. Pre- and post-campaign audits each recorded zero Recipes, Shopping Lists, Shopping Items, and Meal Plans; the job-named container and volume were removed. This proves cleanup only for those audited collections and run-owned Docker state.
+
+### GitHub-hosted evidence ledger
+
+These are three independently executed campaigns, not one synthetic 37-item pytest run:
+
+| Campaign | Run | Items | PASS | FAIL | SKIP | ERROR |
+|---|---|---:|---:|---:|---:|---:|
+| P0 (TC-01..TC-11) | [#40087491627](https://github.com/Huuthien12/R02-K05-Mealie-QA/actions/runs/40087491627) | 11 | 4 | 7 | 0 | 0 |
+| P1 (TC-12..TC-21) | [#40154237009](https://github.com/Huuthien12/R02-K05-Mealie-QA/actions/runs/40154237009) | 10 | 9 | 1 | 0 | 0 |
+| Expansion (TC-22..TC-37) | [#40155534891](https://github.com/Huuthien12/R02-K05-Mealie-QA/actions/runs/40155534891) | 16 | 10 | 6 | 0 | 0 |
+| **Cross-campaign total** | — | **37** | **23** | **14** | **0** | **0** |
+
+The total is an evidence ledger only. It does not replace retained local JUnit files, treat all tests as one shared database campaign, or convert repeated testcase failures into new defect IDs.
 
 ### Legacy TC-01 through TC-21 API regression
 
@@ -136,7 +151,8 @@ After these workflow files reach the default branch (`main`):
 1. Open **Actions**, select the workflow, and choose **Run workflow**.
 2. For GitHub-hosted P0, select **GitHub-hosted Mealie P0 regression** and select `main`. Its branch guard skips any other branch; it needs no environment approval or secret. Download `mealie-hosted-p0-<run-id>` from **Artifacts** and inspect `hosted-p0.xml` to prove the eleven items ran.
 3. For GitHub-hosted P1, select **GitHub-hosted Mealie P1 regression**, select `main`, and set `confirm_disposable_p1=true`. Download `mealie-hosted-p1-<run-id>` and inspect `hosted-p1.xml` plus `hosted-p1-cleanup.txt`; do not treat a red DEF-04/P1 contract result as an infrastructure pass.
-4. The remaining P0/P1 dispatch inputs (`run_qa_p0`, `run_p0`, `run_p1`, and `confirm_disposable_qa`) describe the retained self-hosted workflows, which are not enabled by the GitHub-hosted campaigns.
+4. For the expansion, select **GitHub-hosted Mealie TC-22 to TC-37 regression**, select `main`, and set `confirm_disposable_expansion=true`. Download `mealie-hosted-tc22-tc37-<run-id>` and inspect JUnit plus cleanup evidence; known defects must remain red.
+5. The remaining P0/P1 dispatch inputs (`run_qa_p0`, `run_p0`, `run_p1`, and `confirm_disposable_qa`) describe the retained self-hosted workflows, which are not enabled by the GitHub-hosted campaigns.
 
 If the workflow is red because a known defect reproduces, keep the red verdict, attach the JUnit artifact to the defect evidence, compare endpoint/status/schema with the pinned OpenAPI snapshot, and update reproduction counts without duplicating the defect.
 
@@ -146,5 +162,5 @@ If the workflow is red because a known defect reproduces, keep the red verdict, 
 - GitHub CLI authentication was invalid during the review, so Environment, runner online state, branch protection, and a Draft PR could not be inspected or changed.
 - GitHub-hosted run #1 failed before Mealie startup with Docker exit 125 (`manifest unknown`) because the workflow had `...d06ef7e7...` instead of `...d06ef7a7...`; run #2 verified the correction and retained the expected known-defect verdicts in JUnit.
 - The release image digest was resolved from the `v3.28.0` manifest, but release-image-to-source-commit provenance was not independently established.
-- The hosted P1 disposable pattern is execution-verified in run #40154237009; its workflow source and expansion workflow still require normal review/merge sequencing on the default branch.
-- TC-22..TC-37 has no GitHub-hosted run yet, so its six historical failures are not reclassified by the new workflow.
+- P1 and expansion isolation are GitHub-verified only for their audited collections and job-owned Docker resources; no evidence here covers unaudited Mealie resources, authorization boundaries, or production-like shared data.
+- The release image digest proves the deployed manifest, not independent source-commit provenance for the pinned Mealie commit.
