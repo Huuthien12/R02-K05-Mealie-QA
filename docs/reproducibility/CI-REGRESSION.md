@@ -1,12 +1,13 @@
 # CI and Regression Operations
 
-Status reviewed: **2026-10-24**.
+Status reviewed: **2026-10-25**.
 
 | Capability | Status | Evidence / limitation |
 |---|---|---|
 | P0 offline inventory and selection | GITHUB VERIFIED | `P0 contract regression #1` completed successfully for commit `fc4f6b3`; this did not call Mealie. |
 | Legacy TC-01..TC-21 offline inventory | STATIC VALIDATED | Workflow is present on `main`; no GitHub run was visible during this review. |
 | GitHub-hosted authenticated P0 (TC-01..TC-11) | GITHUB VERIFIED | [Run #2](https://github.com/Huuthien12/R02-K05-Mealie-QA/actions/runs/40087491627) completed startup, ephemeral authentication, and all 11 items: 4 PASS, 7 known-defect FAIL, 0 SKIP, 0 ERROR. |
+| GitHub-hosted disposable P1 (TC-12..TC-21) | IMPLEMENTED / STATIC VALIDATED | [mealie-p1-hosted.yml](../../.github/workflows/mealie-p1-hosted.yml) creates a job-only SQLite database, verifies empty pre/post P1 collections, and uploads cleanup evidence; no GitHub run has verified it yet. |
 | Authenticated P0 on self-hosted QA | RETIRED / NOT VERIFIED | The ACER runner was removed because this public repository must not rely on a persistent workstation runner. |
 | Legacy P1 on disposable QA | NOT VERIFIED / BLOCKED | No independently isolated disposable instance or runner could be verified. |
 
@@ -50,9 +51,11 @@ The digest is immutable deployment evidence for the published `v3.28.0` manifest
 
 JUnit totals are **4 PASS, 7 FAIL, 0 SKIP, 0 ERROR**. The red workflow conclusion reflects known SUT/API-contract detections, not CI infrastructure: image pull, service startup, bootstrap, bearer authentication, and test execution all completed. The run adds no defect family and does not change the controlled-reproduction counts in the defect log.
 
-### GitHub-hosted P1 expansion status
+### GitHub-hosted P1 regression
 
-The job-unique SQLite volume and container teardown demonstrate an isolation pattern that can support a future disposable P1 job. Existing P1 tests use unique markers and `finally` cleanup limited to test-created resource identifiers, but that cleanup has not been verified in a GitHub-hosted write campaign. Therefore TC-12..TC-21 remain **not implemented and blocked** for hosted CI until a separately reviewed workflow proves P1-specific preconditions, post-test cleanup verification, JUnit evidence, and job-volume destruction. No P1 write operation is enabled by this workflow.
+[mealie-p1-hosted.yml](../../.github/workflows/mealie-p1-hosted.yml) is a separate, manual TC-12..TC-21 campaign. It is guarded by the default branch and `confirm_disposable_p1=true`; it never runs on `push` or `pull_request`. The workflow uses a job-unique SQLite Docker volume, requires the four P1 resource collections to be empty before the campaign, checks those collections again after pytest, records that evidence, and then removes only the exact job-created container and volume.
+
+The ten historical P1 items retain their existing assertions, including the intentional DEF-04 reproduction. Their `finally` handlers clean tracked resource identifiers; the workflow's fresh-volume teardown provides an additional isolation boundary if a test cleanup path fails. A test or cleanup failure remains a failed job after artifact upload. This workflow is **IMPLEMENTED / STATIC VALIDATED** only until a GitHub Actions run produces P1 JUnit and cleanup evidence.
 
 ### Legacy TC-01 through TC-21 API regression
 
@@ -119,7 +122,8 @@ After these workflow files reach the default branch (`main`):
 
 1. Open **Actions**, select the workflow, and choose **Run workflow**.
 2. For GitHub-hosted P0, select **GitHub-hosted Mealie P0 regression** and select `main`. Its branch guard skips any other branch; it needs no environment approval or secret. Download `mealie-hosted-p0-<run-id>` from **Artifacts** and inspect `hosted-p0.xml` to prove the eleven items ran.
-3. The remaining P0/P1 dispatch inputs (`run_qa_p0`, `run_p0`, `run_p1`, and `confirm_disposable_qa`) describe the retained self-hosted workflows, which are not enabled by the GitHub-hosted campaign.
+3. For GitHub-hosted P1, select **GitHub-hosted Mealie P1 regression**, select `main`, and set `confirm_disposable_p1=true`. Download `mealie-hosted-p1-<run-id>` and inspect `hosted-p1.xml` plus `hosted-p1-cleanup.txt`; do not treat a red DEF-04/P1 contract result as an infrastructure pass.
+4. The remaining P0/P1 dispatch inputs (`run_qa_p0`, `run_p0`, `run_p1`, and `confirm_disposable_qa`) describe the retained self-hosted workflows, which are not enabled by the GitHub-hosted campaigns.
 
 If the workflow is red because a known defect reproduces, keep the red verdict, attach the JUnit artifact to the defect evidence, compare endpoint/status/schema with the pinned OpenAPI snapshot, and update reproduction counts without duplicating the defect.
 
@@ -129,4 +133,4 @@ If the workflow is red because a known defect reproduces, keep the red verdict, 
 - GitHub CLI authentication was invalid during the review, so Environment, runner online state, branch protection, and a Draft PR could not be inspected or changed.
 - GitHub-hosted run #1 failed before Mealie startup with Docker exit 125 (`manifest unknown`) because the workflow had `...d06ef7e7...` instead of `...d06ef7a7...`; run #2 verified the correction and retained the expected known-defect verdicts in JUnit.
 - The release image digest was resolved from the `v3.28.0` manifest, but release-image-to-source-commit provenance was not independently established.
-- P1 remains blocked until a disposable environment is demonstrated.
+- GitHub-hosted P1 is static-only until its first manual `main` dispatch verifies the complete bootstrap, write, post-campaign data audit, and teardown path.
