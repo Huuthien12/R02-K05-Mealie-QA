@@ -46,7 +46,9 @@ def test_tc23_unicode_shopping_list_name_round_trip():
             assert created_id, "TC-23: successful create must return an id"
             current = get(f"/api/households/shopping/lists/{created_id}")
             assert current.status_code == 200, "TC-23: created list must be readable"
-            assert current.json().get("name") == name
+            current = current.json()
+            assert current.get("id") == created_id, "TC-23: GET returned a different list"
+            assert current.get("name") == name, "TC-23: Unicode name did not round-trip exactly"
     finally:
         if created_id:
             delete(f"/api/households/shopping/lists/{created_id}")

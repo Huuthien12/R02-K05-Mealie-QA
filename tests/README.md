@@ -11,7 +11,7 @@ The selected P0 operations are all authenticated `GET` routes:
 - `/api/households/shopping/items` and `/api/households/shopping/items/{item_id}`
 - `/api/households/mealplans`, `/api/households/mealplans/{item_id}`, and `/api/households/mealplans/today`
 
-P1 writes, recipe lifecycle S6, authentication-negative tests, public/external targets, and destructive operations are excluded.
+P1 writes are opt-in only. They require `MEALIE_API_TOKEN` and `MEALIE_RUN_P1_EXPANSION=1`, and must target a disposable QA database; public/external targets and destructive operations are excluded.
 
 ## Setup
 
@@ -50,4 +50,4 @@ For P1 commands, known intentional failures, cleanup rules, and result interpret
 
 ## Current execution status
 
-The bounded P0 campaign is complete in retained Phase 3 evidence: all 9 selected operations were exercised and DEF-01 through DEF-03 were triaged. P1 controlled lifecycle testing is also complete; the normal suite recorded `9 passed`, while `test_p1_recipe_empty_name.py` is an intentional DEF-04 regression failure. A new runtime replay still requires a local token; no unauthenticated fallback is used.
+Official execution evidence is the GitHub-hosted ledger: P0 11 items (4 PASS/7 FAIL), P1 10 (9 PASS/1 FAIL), and TC-22..37 expansion 16 (10 PASS/6 FAIL), for **37 items, 23 PASS, 14 FAIL, 0 SKIP, 0 ERROR and 7 defect families**. These are independent disposable-database campaigns. A new replay requires an authorized disposable target; no unauthenticated fallback is used.

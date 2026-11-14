@@ -91,6 +91,7 @@ def test_tc32_shopping_item_checked_true_to_false():
             return
         after_first = get(f"/api/households/shopping/items/{item['id']}")
         assert after_first.status_code == 200
+        assert after_first.json().get("checked") is True, "TC-32: first successful write was not persisted"
         second = requests.put(
             f"{BASE_URL}/api/households/shopping/items/{item['id']}",
             headers=HEADERS,
@@ -99,7 +100,9 @@ def test_tc32_shopping_item_checked_true_to_false():
         )
         assert_status(second, {200, 422}, "TC-32 second PUT")
         if second.status_code == 200:
-            assert get(f"/api/households/shopping/items/{item['id']}").json().get("checked") is False
+            final = get(f"/api/households/shopping/items/{item['id']}")
+            assert final.status_code == 200, "TC-32: final item must be readable"
+            assert final.json().get("checked") is False, "TC-32: second successful write was not persisted"
     finally:
         if item:
             delete(f"/api/households/shopping/items/{item['id']}")

@@ -4,7 +4,7 @@
 > **Dự án:** R02-K05-Mealie-QA  
 > **Tài liệu đặc tả đi kèm:** [`../specification/MEALIE-FUNCTIONAL-SPECIFICATION.md`](../specification/MEALIE-FUNCTIONAL-SPECIFICATION.md)  
 > **SUT:** Mealie v3.28.0 (`0552eaa4a80031b8572849cca0ed95d07f1be001`) · **OpenAPI:** 3.1.0  
-> **Nguồn kết quả:** `reports/test-results.xml`, `reports/final/FINAL-RESULTS.md`, các bản P0/P1 summary và `evidence/defects/`.  
+> **Nguồn kết quả:** `docs/reproducibility/CI-REGRESSION.md`, `reports/final/FINAL-RESULTS.md`, các summaries và `evidence/defects/`.
 > **Lưu ý:** bảng dưới đây là **truy vết hồi cứu từ lần chạy đã lưu**, không phải kết quả chạy lại hôm nay. Không khẳng định hai tài liệu mới đã tồn tại trước các test lịch sử.
 
 ---
@@ -26,7 +26,7 @@ Ma trận này trả lời trực tiếp những câu hỏi của giảng viên:
 | `DEF-xx` | Họ sai lệch đã lập hồ sơ; nhiều TC có thể cùng liên hệ một DEF |
 | `OBS-xx`, `TEST-xx` | Quan sát về schema hoặc lỗi giả định của bộ test (không được tính SUT defect) |
 
-**Quy tắc định lượng:** 21 mục pytest **không phải 21 API endpoints** cũng **không đồng nghĩa 21 HTTP requests**. P0 có 9 GET operations khác nhau, nhưng GET Recipes được chạy thêm smoke; P1 có test lặp nhiều payload trong cùng một hàm. Một lần chạy test P0 có thể sinh nhiều examples từ Hypothesis/Schemathesis.
+**Quy tắc định lượng:** 37 mục pytest **không phải 37 API endpoints** cũng **không đồng nghĩa 37 HTTP requests**. P0 có 9 GET operations khác nhau, nhưng GET Recipes được chạy thêm smoke; P1 có test lặp nhiều payload trong cùng một hàm. Một lần chạy test P0 có thể sinh nhiều examples từ Hypothesis/Schemathesis.
 
 ### 1.2 Phương pháp tính verdict
 
@@ -34,7 +34,7 @@ Ma trận này trả lời trực tiếp những câu hỏi của giảng viên:
 - **FAIL** nếu một trong các assertion vi phạm (ví dụ undocumented 400/404, HTTP 500); không tự động kết luận do test harness hay có defect độc lập.
 - **SKIP** nếu biến `MEALIE_API_TOKEN` chưa được cung cấp; đây là điều kiện chạy, không phải kết quả kiểm thử API.
 - **Contract mismatch** (DEF-02/DEF-03) khác **server-error** (DEF-01/DEF-04). HTTP 404 cho tài nguyên không tồn tại có thể hợp lý về nghiệp vụ nhưng vẫn chưa được **contract** công bố.
-- Kết quả lưu tại XML có **13 PASS, 8 FAIL, 0 SKIP**. P0: 4 PASS/7 FAIL; P1: 9 PASS/1 FAIL.
+- Ledger chính thức gồm ba campaign GitHub-hosted độc lập: P0 11 items (4 PASS/7 FAIL), P1 10 items (9 PASS/1 FAIL), expansion 16 items (10 PASS/6 FAIL), tổng **37 items, 23 PASS, 14 FAIL, 0 SKIP, 0 ERROR** và **7 defect families**. `reports/test-results.xml` chỉ là evidence historical 21-item, không thay thế ledger này.
 
 ---
 
@@ -318,10 +318,10 @@ Một requirement có thể được thử bởi nhiều test và một test có
 | P0 GET operations được chọn và lịch sử có thực thi | **9/9** | Đúng phạm vi 9 operation GET; không phải full API coverage |
 | P0 pytest items | **11** | 5 collection + 4 detail + 1 offline selection + 1 smoke |
 | P1 pytest items | **10** | 4 lifecycle + 3 shopping-list boundary + 1 item boundary + 1 meal-plan boundary + 1 recipe defect reproducer |
-| Tổng pytest items | **21** | 13 PASS, 8 FAIL, 0 SKIP |
+| Tổng pytest items | **37** | 23 PASS, 14 FAIL, 0 SKIP, 0 ERROR across three independent GitHub-hosted campaigns |
 | Miền nghiệp vụ P1 lifecycle | **4** | Lists, items, meal plans, recipes |
 | Boundary/test reproducer payload groups | **4** | Meal Plan, Shopping Item, Shopping List, Recipe empty name |
-| Defect families có hồ sơ | **4** | DEF-01…04, **không phải 8 defect độc lập** |
+| Defect families có hồ sơ | **7** | DEF-01…07, **không phải 14 defect độc lập** |
 
 ### 5.2 Những chức năng chưa được kiểm thử đầy đủ
 
@@ -429,7 +429,7 @@ Nhóm đã có **OpenAPI snapshot và oracle O1–O8** làm cơ sở ban đầu;
 - [ ] Đặc tả `MEALIE-FUNCTIONAL-SPECIFICATION.md` và RTM cùng version; mở trực tiếp được các link tương đối sau khi chép vào đúng folder.
 - [ ] Có đủ TC-01…TC-21; tên bài test, method/path và kết quả khớp JUnit XML.
 - [ ] Phân biệt rõ source-of-truth OpenAPI (**C**), kỳ vọng tự đặt của nhóm (**T**) và hành vi thực tế (**O**).
-- [ ] Báo đúng 13 PASS, 8 FAIL, 0 SKIP ở **historical run**; không tuyên bố chạy lại nếu không có bằng chứng mới.
+- [ ] Phân biệt đúng `reports/test-results.xml` historical 21-item (13 PASS, 8 FAIL) với ledger GitHub-hosted chính thức 37-item (23 PASS, 14 FAIL); không tuyên bố rerun mới nếu không có evidence mới.
 - [ ] Bốn DEF-ID liên kết đúng bằng chứng tái hiện, không đếm trùng.
 - [ ] Công khai test gaps: Recipe PUT/PATCH, negative auth, expected từng boundary case, thiếu 404 trong contract.
 - [ ] Không lưu bearer token/credentials; cleanup child trước parent.

@@ -569,7 +569,7 @@ Không ghi token thật vào repository.
 
 - P0: 9 GET operations, 11 mục pytest (gồm lựa chọn offline, collection/detail và smoke).
 - P1: 10 mục pytest boundary/lifecycle với dữ liệu QA riêng và cleanup.
-- Kết quả được lưu tại `reports/test-results.xml`: **13 PASS, 8 FAIL, 0 SKIP** (không phải 8 defect độc lập).
+- Evidence historical 21-item trong `reports/test-results.xml`: **13 PASS, 8 FAIL, 0 SKIP**; ledger chính thức là ba campaign GitHub-hosted: **37 items, 23 PASS, 14 FAIL, 0 SKIP, 0 ERROR, 7 defect families** (không phải 14 defect độc lập).
 - Chạy lại cần bảo đảm Mealie local **healthy** và đã thiết lập `MEALIE_API_TOKEN` hợp lệ.
 
 Ví dụ trên PowerShell (nhập token an toàn, không đưa vào file được commit):
@@ -752,7 +752,7 @@ Các Phase 1–5 đã có tài liệu và evidence như mục 8. **Không thực
 1. **Chốt phân công mới** với cả nhóm; cập nhật đồng bộ `README.md`, phụ lục phân công trong Word và các tài liệu team contribution nếu sử dụng.
 2. **Đưa hai tài liệu mới vào đúng đường dẫn**: `docs/specification/MEALIE-FUNCTIONAL-SPECIFICATION.md` và `docs/test-design/REQUIREMENTS-TRACEABILITY-MATRIX.md`; Quân review, Long duyệt phiên bản đặc tả.
 3. **Kiểm tra truy vết**: 21 mục pytest phải khớp mã TC, các yêu cầu REQ, oracle, expected; phân biệt contract OpenAPI với quy tắc kiểm thử của nhóm.
-4. **Chạy lại bộ kiểm thử nếu cần evidence mới** trên đúng Mealie v3.28.0, token QA hợp lệ, có backup/cleanup. Lưu JUnit XML, log, timestamp, baseline và kết quả actual; không giả định lần chạy mới vẫn là 13 PASS / 8 FAIL.
+4. **Chạy lại bộ kiểm thử nếu cần evidence mới** chỉ trên Mealie QA disposable/được phép, token QA hợp lệ và có cleanup. Lưu JUnit XML, log, timestamp, baseline và kết quả actual; không giả định lần chạy mới vẫn là ledger 23 PASS / 14 FAIL.
 5. **Triage các bài FAIL** theo DEF-01..DEF-04 hoặc finding mới; bổ sung request tối giản và RCA tương ứng, không sửa assertion chỉ để đạt 100% PASS.
 6. **Đồng bộ báo cáo Word**: đặc tả, ma trận truy vết, phân công, số liệu, tài liệu tham khảo và bằng chứng minh họa.
 7. **Review cuối/PR**: kiểm tra liên kết Markdown, bảo mật token, git diff, peer evaluation, trạng thái task board và checklist nộp bài.
@@ -789,7 +789,7 @@ Mọi thành viên cần sử dụng cùng baseline để đảm bảo kết qu�
 | Hạng mục | Trạng thái |
 |---|---|
 | Environment, OpenAPI baseline, phân tích hệ thống | Đã có bằng chứng |
-| P0/P1 automation, lịch sử 21 bài test | Đã có kết quả (13 PASS / 8 FAIL) |
+| P0/P1/expansion automation | Ba campaign GitHub-hosted: 37 items, 23 PASS / 14 FAIL; historical 21-item evidence được giữ riêng |
 | Defect/RCA, reproducibility | Đã có hồ sơ |
 | Đặc tả và traceability theo yêu cầu giảng viên | Đã soạn, cần review/chốt và commit |
 | Báo cáo Word / phân công / bản nộp | Cần đồng bộ và xác nhận cuối |

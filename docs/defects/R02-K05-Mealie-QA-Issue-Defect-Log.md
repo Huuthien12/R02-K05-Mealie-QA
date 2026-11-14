@@ -1786,3 +1786,16 @@ Evidence: GitHub Actions [run #40155534891](https://github.com/Huuthien12/R02-K0
 - TC-35 passed, consistent with TEST-07 **FIXED / VERIFIED**.
 
 The GitHub Actions run is red because the six pytest assertions correctly retained those existing SUT/contract verdicts, not because of Docker image pull, startup, bootstrap, authentication, JUnit artifact, or cleanup failure. Pre- and post-campaign audits reported zero Recipes, Shopping Lists, Shopping Items, and Meal Plans; the run-owned container and volume were removed. That cleanup evidence is limited to these audited collections and run-owned Docker state.
+
+---
+
+## 20. Official GitHub-hosted evidence ledger
+
+| Campaign | Items | PASS | FAIL | Defect families observed |
+| --- | ---: | ---: | ---: | --- |
+| P0 TC-01..TC-11, run #40087491627 | 11 | 4 | 7 | DEF-01..03 |
+| P1 TC-12..TC-21, run #40154237009 | 10 | 9 | 1 | DEF-04 |
+| Expansion TC-22..TC-37, run #40155534891 | 16 | 10 | 6 | DEF-03, DEF-05..07 |
+| **Total across independent campaigns** | **37** | **23** | **14** | **7 families, DEF-01..07** |
+
+The total is an evidence ledger, not a synthetic 37-item rerun and not a count of independent defects. A red test remains a finding until the SUT or published contract changes; TEST-07 is the separately tracked harness correction.

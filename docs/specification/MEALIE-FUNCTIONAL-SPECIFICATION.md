@@ -7,6 +7,8 @@
 > **Môi trường tham chiếu:** `http://localhost:9091` · **Kỹ thuật:** API contract testing, schema-based/property-based testing, kiểm thử luồng và giá trị biên  
 > **Trạng thái tài liệu:** *Đặc tả kiểm thử do nhóm tổng hợp*, không phải tài liệu yêu cầu chính thức do tác giả Mealie phê duyệt.
 
+> **Ledger kết quả chính thức:** ba campaign GitHub-hosted database disposable, độc lập nhau: TC-01..11 = 4 PASS / 7 FAIL; TC-12..21 = 9 PASS / 1 FAIL; TC-22..37 = 10 PASS / 6 FAIL. Tổng evidence ledger: **37 items, 23 PASS, 14 FAIL, 0 SKIP, 0 ERROR, 7 defect families (DEF-01..DEF-07)**. Đây không phải một lần chạy 37 test trên cùng database.
+
 ---
 
 ## 1. Mục đích, nguyên tắc và giới hạn
@@ -53,8 +55,8 @@ Ngoài phạm vi: xác thực/đổi mật khẩu/tạo token, quản trị, sao
 | SRC-04 | `docs/test-design/invariants-and-oracles.md` | O1–O8 làm chuẩn hợp đồng và dọn dữ liệu |
 | SRC-05 | `docs/test-design/test-scenarios.md`, `docs/test-design/business-flows.md` | Luồng đọc dữ liệu, vòng đời danh sách, mặt hàng, kế hoạch và công thức |
 | SRC-06 | `tests/schemathesis/test_p0_*.py`, `tests/schemathesis/test_p1_*.py` | Kỹ thuật triển khai và assertion hiện có; dùng để xác định **mức thực sự đã kiểm thử** |
-| SRC-07 | `reports/test-results.xml`, `reports/final/FINAL-RESULTS.md` | Bằng chứng thực tế (O), **không phải** nguồn của expected result |
-| SRC-08 | `evidence/defects/DEF-01-*.md` … `DEF-04-*.md` | Tái hiện và phân loại sai lệch so với contract |
+| SRC-07 | `docs/reproducibility/CI-REGRESSION.md`, `reports/final/FINAL-RESULTS.md` | Ledger GitHub-hosted và bằng chứng thực tế (O), **không phải** nguồn của expected result |
+| SRC-08 | `evidence/defects/DEF-01-*.md` … `DEF-07-*.md` | Tái hiện và phân loại sai lệch so với contract |
 
 **Kiểm soát thay đổi đặc tả:** Khi phát hiện quy tắc nghiệp vụ mới, đề xuất thay đổi với lý do + nguồn, người duyệt và version; không thay quy tắc cũ chỉ vì kết quả không đạt. Nếu thầy yêu cầu đặc tả tiên nghiệm nghiêm ngặt, cần ghi rõ tài liệu này được **chuẩn hóa sau khi dự án đã có các test và evidence**, và dùng nó làm baseline cho **các lần chạy tiếp theo**. Không tuyên bố hai file này đã tồn tại trước lần test lịch sử.
 

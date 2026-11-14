@@ -56,6 +56,7 @@ def test_tc27_mealplan_second_update_is_final_state():
             return
         after_first = get(f"/api/households/mealplans/{item['id']}")
         assert after_first.status_code == 200
+        assert after_first.json().get("title") == first_title, "TC-27: first successful write was not persisted"
         final_title = unique("22-27-final")
         second = requests.put(
             f"{BASE_URL}/api/households/mealplans/{item['id']}",
@@ -65,7 +66,9 @@ def test_tc27_mealplan_second_update_is_final_state():
         )
         assert_status(second, {200, 422}, "TC-27 second PUT")
         if second.status_code == 200:
-            assert get(f"/api/households/mealplans/{item['id']}").json().get("title") == final_title
+            final = get(f"/api/households/mealplans/{item['id']}")
+            assert final.status_code == 200, "TC-27: final entry must be readable"
+            assert final.json().get("title") == final_title, "TC-27: second successful write was not persisted"
     finally:
         if item:
             delete(f"/api/households/mealplans/{item['id']}")

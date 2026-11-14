@@ -1,5 +1,7 @@
 # Phân công và đóng góp theo vai trò
 
+Phân công dưới đây là trách nhiệm/artefact theo hồ sơ, không phải đánh giá đóng góp cá nhân hay xác nhận peer review. Các ô đánh giá cá nhân chưa có evidence phải để trống trong mẫu peer evaluation.
+
 | Thành viên | Vai trò | Trách nhiệm chính | Artefact/evidence | Phụ thuộc |
 | --- | --- | --- | --- | --- |
 | Nguyễn Minh Long | Leader / QA Integration & Defect Owner | Điều phối, review, triage, defect management, evidence. | Defect log, Phase 4 evidence/RCA, summaries. | Nhận baseline, design và test results. |

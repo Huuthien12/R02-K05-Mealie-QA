@@ -6,7 +6,7 @@
 
 ## 2. Tóm tắt
 
-Nhóm xây dựng pipeline local-only từ OpenAPI snapshot đến test design, execution, triage, RCA và reproducibility. Bốn defect families được lưu evidence; báo cáo không khẳng định full API coverage.
+Nhóm xây dựng pipeline từ OpenAPI snapshot đến test design, execution, triage, RCA và reproducibility. Ba campaign GitHub-hosted dùng database disposable độc lập ghi nhận 37 pytest items, 23 PASS, 14 FAIL và 7 defect families; báo cáo không khẳng định full API coverage.
 
 ## 3. Giới thiệu
 
@@ -54,7 +54,7 @@ Các business/data flows thực tế là recipe, shopping list, shopping item v�
 
 ## 13. P1 – Controlled lifecycle/boundary campaign
 
-Shopping list, shopping item, meal plan và recipe lifecycle/boundary normal regression có **9 passed**. DEF-04 được giữ thành separate intentional failing regression, không sửa assertion để nhận `500`.
+Campaign P1 historical có 9 PASS và 1 FAIL DEF-04; expansion có 10 PASS và 6 FAIL đã phân loại. Các FAIL được giữ nguyên để phát hiện SUT/contract, không sửa assertion để nhận `500` hay `400`.
 
 ## 14. Quy trình triage và reproduction
 
@@ -62,12 +62,15 @@ Triage tách SUT/API-contract defect khỏi ENV/CFG/TEST/OBS. Phase 4 dùng mini
 
 ## 15. Kết quả kiểm thử
 
-| ID | Observed | P4 reproduction | Classification | RCA |
+| ID | Observed | Classification | RCA |
 | --- | --- | ---: | --- | --- |
 | DEF-01 | `GET /api/recipes?foods=` → 500 | 3/3 | server-error / undocumented status | LIKELY IMPLEMENTATION PATH |
 | DEF-02 | `orderBy=null` trên 3 collections → 400 | 9/9 | contract/documentation | CONFIRMED ROOT CAUSE |
 | DEF-03 | missing recipe/meal-plan detail → 404 | 6/6 | contract/documentation | CONFIRMED ROOT CAUSE |
-| DEF-04 | empty recipe name → 500 / AssertionError | 3/3 | input-validation server-error / undocumented status | CONFIRMED ROOT CAUSE |
+| DEF-04 | empty recipe name → 500 / AssertionError | input-validation server-error / undocumented status | CONFIRMED ROOT CAUSE |
+| DEF-05 | shopping item with missing parent → 500 | SUT invalid-reference handling | LIKELY implementation path |
+| DEF-06 | partial recipe PUT → 500 ValidationError | SUT/contract | exact validator not established |
+| DEF-07 | whitespace recipe name → undocumented 400 | contract response mismatch | root cause not established |
 
 ## 16. Phân tích DEF-01
 
@@ -87,7 +90,7 @@ Schema cho `orderBy` nullable và response map `200/422`; runtime parser nhận 
 
 ## 20. Tổng hợp defect
 
-Tổng độc quyền là **4** families: **2 server-error** (DEF-01, DEF-04) và **2 contract/documentation** (DEF-02, DEF-03). DEF-01/04 không được double-count.
+Tổng độc quyền là **7 defect families** (DEF-01…DEF-07). **14 FAIL không phải 14 defect**; DEF-03 được tái hiện trên nhiều operation và không được double-count.
 
 ## 21. Reproducibility
 
@@ -105,7 +108,7 @@ Snapshot ổn định, lifecycle cleanup và evidence map giúp tránh claim vư
 
 ## 24. Kết luận
 
-Pipeline P0/P1/triage/RCA/reproducibility hoàn thành cho scope đã chọn và có đủ evidence cho báo cáo/demonstration.
+Pipeline P0/P1/expansion/triage/RCA/reproducibility hoàn thành cho scope đã chọn. Ledger chính thức là ba campaign GitHub-hosted độc lập: 11 (4/7), 10 (9/1), và 16 (10/6), tổng 37 items, 23 PASS, 14 FAIL, 0 SKIP, 0 ERROR.
 
 ## 25. Hướng phát triển
 
