@@ -1,4 +1,4 @@
-# Schemathesis P0 read-only POC
+# Mealie QA: P0 Schemathesis, P1 lifecycle and TC-22..TC-37 expansion
 
 ## Baseline and scope
 
@@ -11,7 +11,7 @@ The selected P0 operations are all authenticated `GET` routes:
 - `/api/households/shopping/items` and `/api/households/shopping/items/{item_id}`
 - `/api/households/mealplans`, `/api/households/mealplans/{item_id}`, and `/api/households/mealplans/today`
 
-P1 writes are opt-in only. They require `MEALIE_API_TOKEN` and `MEALIE_RUN_P1_EXPANSION=1`, and must target a disposable QA database; public/external targets and destructive operations are excluded.
+Write tests target authorized **disposable QA data only**. Legacy `test_p1_*.py` tests require `MEALIE_API_TOKEN` but do **not** enforce the expansion opt-in variable when directly invoked; therefore, run them only via a protected/disposable environment or after explicitly verifying the target is disposable. TC-22..TC-37 write tests additionally enforce `MEALIE_RUN_P1_EXPANSION=1` through `require_p1()`. No campaign may target a public/production server or user data.
 
 ## Setup
 

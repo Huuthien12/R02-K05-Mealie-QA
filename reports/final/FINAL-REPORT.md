@@ -62,15 +62,15 @@ Triage tách SUT/API-contract defect khỏi ENV/CFG/TEST/OBS. Phase 4 dùng mini
 
 ## 15. Kết quả kiểm thử
 
-| ID | Observed | Classification | RCA |
-| --- | --- | ---: | --- | --- |
-| DEF-01 | `GET /api/recipes?foods=` → 500 | 3/3 | server-error / undocumented status | LIKELY IMPLEMENTATION PATH |
-| DEF-02 | `orderBy=null` trên 3 collections → 400 | 9/9 | contract/documentation | CONFIRMED ROOT CAUSE |
-| DEF-03 | missing recipe/meal-plan detail → 404 | 6/6 | contract/documentation | CONFIRMED ROOT CAUSE |
-| DEF-04 | empty recipe name → 500 / AssertionError | input-validation server-error / undocumented status | CONFIRMED ROOT CAUSE |
-| DEF-05 | shopping item with missing parent → 500 | SUT invalid-reference handling | LIKELY implementation path |
-| DEF-06 | partial recipe PUT → 500 ValidationError | SUT/contract | exact validator not established |
-| DEF-07 | whitespace recipe name → undocumented 400 | contract response mismatch | root cause not established |
+| ID | Observed | Reproduction | Classification | RCA |
+| --- | --- | --- | --- | --- |
+| DEF-01 | `GET /api/recipes?foods=` → 500 | 3/3 | Server error / undocumented status | LIKELY IMPLEMENTATION PATH |
+| DEF-02 | `orderBy=null` trên 3 collections → 400 | 9/9 | Contract/documentation mismatch | CONFIRMED ROOT CAUSE |
+| DEF-03 | Missing recipe/meal-plan detail → 404 | 6/6 | Contract/documentation mismatch | CONFIRMED ROOT CAUSE |
+| DEF-04 | Empty recipe name → 500 / AssertionError | 3/3 | Input-validation server error | CONFIRMED ROOT CAUSE |
+| DEF-05 | Shopping item with missing parent → 500 | 2/2 | Invalid-reference server error | LIKELY implementation path |
+| DEF-06 | Partial recipe PUT → 500 / ValidationError | 2/2 | SUT/contract mismatch | Exact validator not established |
+| DEF-07 | Whitespace recipe name → undocumented 400 | 2/2 | Contract response mismatch | Root cause not established |
 
 ## 16. Phân tích DEF-01
 

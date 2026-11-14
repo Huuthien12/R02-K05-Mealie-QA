@@ -111,7 +111,7 @@ Ngoài phạm vi: xác thực/đổi mật khẩu/tạo token, quản trị, sao
 | `GET /api/recipes/{slug}` | `slug` là string path bắt buộc | `200`, `422` | P0 detail và P1 GET |
 | `POST /api/recipes` | Body `CreateRecipe`, bắt buộc `name: string`; schema **không đặt `minLength: 1`** | `201`, `422` | 201 body là **JSON string slug**, không phải full Recipe object |
 | `DELETE /api/recipes/{slug}` | `slug` string path | `200`, `422` | P1 cleanup |
-| `PUT/PATCH /api/recipes/{slug}` | `Recipe-Input` | `200`, `422` | Trong phạm vi quan sát contract, **chưa có case thực thi tương ứng** |
+| `PUT/PATCH /api/recipes/{slug}` | `Recipe-Input` | `200`, `422` | Có TC-34 (PUT) và TC-35 (PATCH) trong expansion; historical 21-item suite chưa bao gồm hai operation này |
 
 ### 4.2 Yêu cầu chức năng
 
@@ -355,7 +355,7 @@ Content-Type: application/json
 
 ---
 
-## 11. Danh sách 21 test đã liên kết với tài liệu
+## 11. Danh sách 21 test giai đoạn đầu (TC-01..21) và phần mở rộng TC-22..37
 
 | Nhóm | ID | Nội dung | Yêu cầu chính |
 |---|---|---|---|
@@ -383,6 +383,6 @@ Chi tiết **tên test pytest thực tế, từng input, kết quả và defect*
 - [Business flows](../test-design/business-flows.md)
 - [Kết quả kiểm thử hiện có](../../reports/test-results.xml)
 - [Inventory và coverage](../../reports/summarized/Test-Inventory-and-Coverage.md)
-- [Evidence DEF-01…DEF-04](../../evidence/defects/)
+- [Evidence DEF-01…DEF-07](../../evidence/defects/)
 
 **Mốc duyệt nội bộ đề xuất:** Trước kỳ chạy kiểm thử tiếp theo, nhóm và giảng viên xác nhận các quy tắc mức T, nhất là kỳ vọng GET sau DELETE và empty recipe name. Những nội dung này phải ghi thành quyết định sửa đổi, không lẫn với OpenAPI gốc.
