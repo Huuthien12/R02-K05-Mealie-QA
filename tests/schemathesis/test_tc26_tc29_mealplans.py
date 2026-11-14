@@ -37,7 +37,7 @@ def test_tc26_reversed_mealplan_date_range():
 
 
 def test_tc27_mealplan_second_update_is_final_state():
-    """TC-27 | REQ-MLP-05 | C: PUT 200/422; T: second successful write is readable."""
+    """TC-27 | REQ-MLP-05 | Positive update twice: both PUTs 200 and final state persists."""
     require_p1()
     item = None
     try:
@@ -51,11 +51,10 @@ def test_tc27_mealplan_second_update_is_final_state():
             json=mealplan_update_payload(current.json(), title=first_title),
             timeout=10,
         )
-        assert_status(first, {200, 422}, "TC-27 first PUT")
-        if first.status_code == 422:
-            return
+        assert_status(first, {200}, "TC-27 first positive PUT")
         after_first = get(f"/api/households/mealplans/{item['id']}")
         assert after_first.status_code == 200
+        assert after_first.json().get("title") == first_title, "TC-27: first successful write was not persisted"
         final_title = unique("22-27-final")
         second = requests.put(
             f"{BASE_URL}/api/households/mealplans/{item['id']}",
@@ -63,9 +62,10 @@ def test_tc27_mealplan_second_update_is_final_state():
             json=mealplan_update_payload(after_first.json(), title=final_title),
             timeout=10,
         )
-        assert_status(second, {200, 422}, "TC-27 second PUT")
-        if second.status_code == 200:
-            assert get(f"/api/households/mealplans/{item['id']}").json().get("title") == final_title
+        assert_status(second, {200}, "TC-27 second positive PUT")
+        final = get(f"/api/households/mealplans/{item['id']}")
+        assert final.status_code == 200, "TC-27: final entry must be readable"
+        assert final.json().get("title") == final_title, "TC-27: second successful write was not persisted"
     finally:
         if item:
             delete(f"/api/households/mealplans/{item['id']}")

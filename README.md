@@ -160,7 +160,7 @@ tests/requirements.txt
 
 - Điều phối tiến độ, phân công, kiểm tra các mốc bàn giao và review Pull Request.
 - Chủ trì **failure triage**: phân biệt lỗi SUT, sai lệch OpenAPI, lỗi môi trường và lỗi test harness.
-- Quản lý DEF-01 đến DEF-04, minh chứng tái hiện và Root Cause Analysis (RCA).
+- Quản lý DEF-01 đến DEF-07, minh chứng tái hiện và Root Cause Analysis (RCA) theo mức bằng chứng.
 - Đánh giá mức độ ảnh hưởng, tổng hợp kết luận defect và duyệt nội dung chuyên môn cuối cùng.
 - Phối hợp với Thiện tích hợp kết quả kiểm thử vào báo cáo và chuẩn bị phần bảo vệ.
 
@@ -196,7 +196,7 @@ tests/requirements.txt
 | Môi trường và tích hợp SUT–harness | **Thiện** | Thọ | `setup/`, `tests/README.md`, health check |
 | Phân tích hệ thống và business flows | **Quân** | Thiện | `docs/analysis/`, `docs/test-design/business-flows.md` |
 | Đặc tả chức năng | **Thiện** | Quân | `docs/specification/MEALIE-FUNCTIONAL-SPECIFICATION.md` |
-| Thiết kế 21 test case và traceability | **Thiện** | Quân, Thọ | `docs/test-design/REQUIREMENTS-TRACEABILITY-MATRIX.md` |
+| Đặc tả và truy vết 21 test ban đầu, cập nhật đến 37 items | **Thiện** | Quân, Thọ | `docs/test-design/REQUIREMENTS-TRACEABILITY-MATRIX.md` |
 | Mã nguồn và bảo trì tự động hóa | **Thọ** | Thiện | `tests/schemathesis/` |
 | Chạy lại test và thu thập log/evidence | **Thiện** | Thọ | `reports/test-results.xml`, `evidence/` |
 | Triage, phân tích nguyên nhân và defect | **Long** | Thọ, Thiện | `docs/defects/`, `evidence/defects/` |
@@ -263,7 +263,7 @@ R02-K05-Mealie-QA/
     └── defects/
 ```
 
-> **Lưu ý khi commit:** Hai file `.md` mới ở `docs/specification/` và `docs/test-design/` cần tồn tại trong repo và được `git add` cùng README; nếu chưa thêm, liên kết ở mục 18 sẽ chưa hoạt động trên GitHub.
+> Hai tài liệu đặc tả và truy vết đã được commit trong repository. Bảng của 21 test ban đầu được bảo tồn như lịch sử; phần mở rộng TC-22..TC-37 được ghi riêng.
 ---
 
 ## 8. Trạng thái dự án
@@ -276,22 +276,21 @@ Bảng dưới đây phân biệt **đầu ra đã có** với **việc còn c�
 | Phase 2 | System/API analysis, test scope, flows, oracle, scenarios | ✅ Đã có tài liệu |
 | Phase 3A | P0: 9 authenticated GET operations, schema-based testing | ✅ Đã có bài test và kết quả |
 | Phase 3B | P1: boundary/lifecycle trên dữ liệu QA | ✅ Đã có bài test và kết quả |
-| Phase 4 | DEF-01..DEF-04: triage, reproduction, RCA theo mức bằng chứng | ✅ Đã có hồ sơ |
+| Phase 4 | DEF-01..DEF-07: triage, reproduction, RCA theo mức bằng chứng | ✅ Đã có hồ sơ và expansion evidence |
 | Phase 5 | Reproducibility, test inventory, báo cáo tổng hợp | ✅ Đã có tài liệu |
-| Bổ sung theo yêu cầu giảng viên | Đặc tả chức năng và ma trận truy vết 21 test | 📝 Đã soạn; cần đưa vào repo, review và chốt version |
+| Bổ sung theo yêu cầu giảng viên | FS-01/RTM-01 cho 21 test ban đầu và expansion TC-22..37 | ✅ Đã có file trên repo; nhóm cần duyệt nội dung trước nộp |
 | Phase 6 | Báo cáo Word và chuẩn bị demo/bảo vệ | 📝 Có bản thảo; cần đồng bộ phân công và duyệt bản nộp |
 
-### Baseline kết quả kiểm thử đã lưu
+### Kết quả chính thức và baseline lịch sử
 
-| Chỉ số | Kết quả |
+| Chỉ số | Ledger GitHub-hosted chính thức |
 |---|---:|
-| Số mục pytest được thu thập | **21** |
-| P0 / P1 | **11 / 10** |
-| PASS / FAIL / SKIP | **13 / 8 / 0** |
-| API GET operations khác nhau trong P0 | **9** |
-| Nhóm finding/defect được theo dõi | **4 (DEF-01..DEF-04)** |
+| Pytest items P0 / P1 / expansion | **11 / 10 / 16** |
+| Tổng items / PASS / FAIL / SKIP / ERROR | **37 / 23 / 14 / 0 / 0** |
+| Defect families | **7 (DEF-01..DEF-07)** |
+| P0 GET operations khác nhau | **9** |
 
-**Diễn giải:** 21 mục pytest không phải 21 endpoint hay 21 HTTP request. Tám bài FAIL không đồng nghĩa tám lỗi độc lập. DEF-01/DEF-04 liên quan HTTP 500; DEF-02/DEF-03 là sai lệch status/contract OpenAPI. Đây là kết quả **đã lưu**, chưa phải lời xác nhận đã chạy lại sau đợt cập nhật README/đặc tả.
+Ba campaign GitHub-hosted chạy **độc lập trên database disposable**, không phải một run chung. Kết quả local 21-item trước đây (13 PASS / 8 FAIL) là evidence lịch sử trong `reports/test-results.xml`, **không** thay thế ledger hiện tại. Một mục pytest có thể tạo nhiều HTTP requests; 14 FAIL không có nghĩa 14 defect độc lập.
 ---
 
 ## 9. Phạm vi kiểm thử
@@ -569,7 +568,7 @@ Không ghi token thật vào repository.
 
 - P0: 9 GET operations, 11 mục pytest (gồm lựa chọn offline, collection/detail và smoke).
 - P1: 10 mục pytest boundary/lifecycle với dữ liệu QA riêng và cleanup.
-- Kết quả được lưu tại `reports/test-results.xml`: **13 PASS, 8 FAIL, 0 SKIP** (không phải 8 defect độc lập).
+- Evidence historical 21-item trong `reports/test-results.xml`: **13 PASS, 8 FAIL, 0 SKIP**; ledger chính thức là ba campaign GitHub-hosted: **37 items, 23 PASS, 14 FAIL, 0 SKIP, 0 ERROR, 7 defect families** (không phải 14 defect độc lập).
 - Chạy lại cần bảo đảm Mealie local **healthy** và đã thiết lập `MEALIE_API_TOKEN` hợp lệ.
 
 Ví dụ trên PowerShell (nhập token an toàn, không đưa vào file được commit):
@@ -707,9 +706,9 @@ Mọi test tạo hoặc thay đổi resource phải:
 ### Functional Specification & Requirements Traceability
 
 - [Mealie Functional Specification — đặc tả chức năng](docs/specification/MEALIE-FUNCTIONAL-SPECIFICATION.md)
-- [Requirements Traceability Matrix — đặc tả ↔ 21 test case ↔ actual ↔ defect](docs/test-design/REQUIREMENTS-TRACEABILITY-MATRIX.md)
+- [Requirements Traceability Matrix — đặc tả ↔ TC-01..TC-37 ↔ actual ↔ defect](docs/test-design/REQUIREMENTS-TRACEABILITY-MATRIX.md)
 
-> Hai tài liệu trên được chuẩn hóa từ baseline và evidence lịch sử. Khi đưa lên GitHub phải commit cả hai file, review/chốt trước lần thực thi tiếp theo.
+> Hai tài liệu trên đã được lưu trong GitHub. Nội dung lịch sử được chuẩn hóa hồi cứu; nhóm cần review các kết luận trước khi chốt nộp.
 
 ### Test Design
 
@@ -750,10 +749,10 @@ Mọi test tạo hoặc thay đổi resource phải:
 Các Phase 1–5 đã có tài liệu và evidence như mục 8. **Không thực hiện lại Phase 3A như công việc chưa bắt đầu.** Những bước cần làm trước khi chốt bản nộp hoặc báo cáo lần tiếp theo:
 
 1. **Chốt phân công mới** với cả nhóm; cập nhật đồng bộ `README.md`, phụ lục phân công trong Word và các tài liệu team contribution nếu sử dụng.
-2. **Đưa hai tài liệu mới vào đúng đường dẫn**: `docs/specification/MEALIE-FUNCTIONAL-SPECIFICATION.md` và `docs/test-design/REQUIREMENTS-TRACEABILITY-MATRIX.md`; Quân review, Long duyệt phiên bản đặc tả.
-3. **Kiểm tra truy vết**: 21 mục pytest phải khớp mã TC, các yêu cầu REQ, oracle, expected; phân biệt contract OpenAPI với quy tắc kiểm thử của nhóm.
-4. **Chạy lại bộ kiểm thử nếu cần evidence mới** trên đúng Mealie v3.28.0, token QA hợp lệ, có backup/cleanup. Lưu JUnit XML, log, timestamp, baseline và kết quả actual; không giả định lần chạy mới vẫn là 13 PASS / 8 FAIL.
-5. **Triage các bài FAIL** theo DEF-01..DEF-04 hoặc finding mới; bổ sung request tối giản và RCA tương ứng, không sửa assertion chỉ để đạt 100% PASS.
+2. **Review hai tài liệu đã có**: `docs/specification/MEALIE-FUNCTIONAL-SPECIFICATION.md` và `docs/test-design/REQUIREMENTS-TRACEABILITY-MATRIX.md`; Quân review và Long xác nhận phiên bản.
+3. **Kiểm tra truy vết**: đủ TC-01..TC-37 phải khớp mã TC, các yêu cầu REQ, oracle, expected; phân biệt contract OpenAPI với quy tắc kiểm thử của nhóm.
+4. **Chạy lại bộ kiểm thử nếu cần evidence mới** chỉ trên Mealie QA disposable/được phép, token QA hợp lệ và có cleanup. Lưu JUnit XML, log, timestamp, baseline và kết quả actual; không giả định lần chạy mới vẫn là ledger 23 PASS / 14 FAIL.
+5. **Triage các bài FAIL** theo DEF-01..DEF-07 hoặc finding mới; bổ sung request tối giản và RCA tương ứng, không sửa assertion chỉ để đạt 100% PASS.
 6. **Đồng bộ báo cáo Word**: đặc tả, ma trận truy vết, phân công, số liệu, tài liệu tham khảo và bằng chứng minh họa.
 7. **Review cuối/PR**: kiểm tra liên kết Markdown, bảo mật token, git diff, peer evaluation, trạng thái task board và checklist nộp bài.
 
@@ -789,9 +788,9 @@ Mọi thành viên cần sử dụng cùng baseline để đảm bảo kết qu�
 | Hạng mục | Trạng thái |
 |---|---|
 | Environment, OpenAPI baseline, phân tích hệ thống | Đã có bằng chứng |
-| P0/P1 automation, lịch sử 21 bài test | Đã có kết quả (13 PASS / 8 FAIL) |
+| P0/P1/expansion automation | Ba campaign GitHub-hosted: 37 items, 23 PASS / 14 FAIL; historical 21-item evidence được giữ riêng |
 | Defect/RCA, reproducibility | Đã có hồ sơ |
-| Đặc tả và traceability theo yêu cầu giảng viên | Đã soạn, cần review/chốt và commit |
+| Đặc tả và traceability theo yêu cầu giảng viên | Đã có file trên repo, cần review/chốt |
 | Báo cáo Word / phân công / bản nộp | Cần đồng bộ và xác nhận cuối |
 
 > Các trạng thái này là tình hình tổng hợp theo hồ sơ đã cung cấp, không thay thế việc kiểm tra commit hoặc test run mới nhất. Nếu chạy lại kiểm thử, ghi nhận kết quả mới thay vì giữ nguyên số liệu lịch sử.

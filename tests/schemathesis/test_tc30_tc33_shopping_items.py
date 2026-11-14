@@ -71,7 +71,7 @@ def test_tc31_item_with_valid_missing_parent_uuid():
 
 
 def test_tc32_shopping_item_checked_true_to_false():
-    """TC-32 | REQ-ITM-04 | C: each PUT returns 200/422; T: final success is false on GET."""
+    """TC-32 | REQ-ITM-04 | Positive checked true-to-false: both PUTs 200 and GET verifies."""
     require_p1()
     parent = None
     item = None
@@ -86,20 +86,20 @@ def test_tc32_shopping_item_checked_true_to_false():
             json=_item_update_payload(current.json(), checked=True),
             timeout=10,
         )
-        assert_status(first, {200, 422}, "TC-32 first PUT")
-        if first.status_code == 422:
-            return
+        assert_status(first, {200}, "TC-32 first positive PUT")
         after_first = get(f"/api/households/shopping/items/{item['id']}")
         assert after_first.status_code == 200
+        assert after_first.json().get("checked") is True, "TC-32: first successful write was not persisted"
         second = requests.put(
             f"{BASE_URL}/api/households/shopping/items/{item['id']}",
             headers=HEADERS,
             json=_item_update_payload(after_first.json(), checked=False),
             timeout=10,
         )
-        assert_status(second, {200, 422}, "TC-32 second PUT")
-        if second.status_code == 200:
-            assert get(f"/api/households/shopping/items/{item['id']}").json().get("checked") is False
+        assert_status(second, {200}, "TC-32 second positive PUT")
+        final = get(f"/api/households/shopping/items/{item['id']}")
+        assert final.status_code == 200, "TC-32: final item must be readable"
+        assert final.json().get("checked") is False, "TC-32: second successful write was not persisted"
     finally:
         if item:
             delete(f"/api/households/shopping/items/{item['id']}")

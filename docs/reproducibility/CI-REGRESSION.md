@@ -18,10 +18,10 @@ Status reviewed: **2026-10-25**.
 
 ### P0 contract regression
 
-[p0-regression.yml](../../.github/workflows/p0-regression.yml) has two jobs:
+[p0-regression.yml](../../.github/workflows/p0-regression.yml) retains an offline job and a disabled historical self-hosted job:
 
 1. `offline-contract-check` runs on relevant pushes and pull requests on `ubuntu-24.04`. It installs pinned dependencies, collects the repository inventory, checks P0 operation selection, and uploads JUnit evidence.
-2. `qa-p0-contract-campaign` runs only after manual dispatch with `run_qa_p0=true`, on the protected Windows runner labels `self-hosted`, `windows`, `mealie-qa`, and with GitHub Environment `qa`.
+2. `qa-p0-contract-campaign` is explicitly disabled (`if: false`) and is retained only as historical configuration; use `mealie-p0-hosted.yml` for authenticated P0.
 
 ### GitHub-hosted Mealie P0 regression
 
@@ -90,9 +90,7 @@ The total is an evidence ledger only. It does not replace retained local JUnit f
 [legacy-tc01-tc21.yml](../../.github/workflows/legacy-tc01-tc21.yml) keeps the historical suite separate from TC-22..TC-37:
 
 - `legacy-inventory` runs on relevant pushes and pull requests on `ubuntu-24.04`, compiles the legacy modules, requires exactly 21 collected items, and rejects TC-22..TC-37 leakage.
-- `legacy-p0` is manual, read-only, and targets TC-01..TC-11 on `mealie-qa`.
-- `legacy-p1` is manual and targets TC-12..TC-21 only on `mealie-qa-disposable`. It also requires the dispatch confirmation and protected variable gate.
-- `legacy-21-summary` combines P0/P1 JUnit only when both campaigns were requested.
+- `legacy-p0`, `legacy-p1`, and `legacy-21-summary` are explicitly disabled (`if: false`) historical configuration; they must not be used to generate current evidence.
 
 Test failures remain failures. Each API job captures JUnit first and then restores the failed verdict; known DEF-01..DEF-03 behavior is not converted to `xfail` or a false-green result.
 
@@ -107,7 +105,7 @@ All third-party actions are pinned to verified 40-character release SHAs:
 | `actions/upload-artifact` | `v7.0.2` | `cf430e030ddbb5b0abf93d22962f4752f3646cd9` | Node 24 artifact client. |
 | `actions/download-artifact` | `v8.0.2` | `9000827ccba6bdab643e8b6fd33ac0654aef8333` | Node 24 artifact client. |
 
-Node 24 actions require Actions Runner `v2.327.1` or later. GitHub-hosted `ubuntu-24.04` runners are managed by GitHub. Before enabling either self-hosted job, verify its installed runner version in **Settings > Actions > Runners** and upgrade it if it is below the minimum. Re-verify the SHAs against official GitHub releases during the next dependency update; do not replace them with moving major tags.
+Node 24 actions require Actions Runner `v2.327.1` or later. GitHub-hosted `ubuntu-24.04` runners are managed by GitHub. The self-hosted workflows are disabled; do not re-enable them merely to reproduce this evidence. Re-verify the SHAs against official GitHub releases during the next dependency update; do not replace them with moving major tags.
 
 ## Protected `qa` environment (legacy self-hosted workflows)
 
@@ -152,7 +150,7 @@ After these workflow files reach the default branch (`main`):
 2. For GitHub-hosted P0, select **GitHub-hosted Mealie P0 regression** and select `main`. Its branch guard skips any other branch; it needs no environment approval or secret. Download `mealie-hosted-p0-<run-id>` from **Artifacts** and inspect `hosted-p0.xml` to prove the eleven items ran.
 3. For GitHub-hosted P1, select **GitHub-hosted Mealie P1 regression**, select `main`, and set `confirm_disposable_p1=true`. Download `mealie-hosted-p1-<run-id>` and inspect `hosted-p1.xml` plus `hosted-p1-cleanup.txt`; do not treat a red DEF-04/P1 contract result as an infrastructure pass.
 4. For the expansion, select **GitHub-hosted Mealie TC-22 to TC-37 regression**, select `main`, and set `confirm_disposable_expansion=true`. Download `mealie-hosted-tc22-tc37-<run-id>` and inspect JUnit plus cleanup evidence; known defects must remain red.
-5. The remaining P0/P1 dispatch inputs (`run_qa_p0`, `run_p0`, `run_p1`, and `confirm_disposable_qa`) describe the retained self-hosted workflows, which are not enabled by the GitHub-hosted campaigns.
+5. The remaining P0/P1 dispatch inputs (`run_qa_p0`, `run_p0`, `run_p1`, and `confirm_disposable_qa`) belong to retained but explicitly disabled self-hosted workflows; do not use them for current evidence.
 
 If the workflow is red because a known defect reproduces, keep the red verdict, attach the JUnit artifact to the defect evidence, compare endpoint/status/schema with the pinned OpenAPI snapshot, and update reproduction counts without duplicating the defect.
 

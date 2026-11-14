@@ -7,18 +7,21 @@
 | Scope | local `http://localhost:9091` only |
 | Tooling | Python 3.11.9; Schemathesis 4.28.0 |
 
-| Campaign | Kết quả | Ý nghĩa |
-| --- | --- | --- |
-| P0 | 9/9 GET historically exercised; collection `4 failed, 1 passed`; detail `2 failed, 2 passed` | Known detections, không all-pass. |
-| P1 normal | `9 passed` | Lifecycle/boundary có cleanup. |
-| DEF-04 regression | Intentional failing test | Detects observed 500 versus contract. |
-| P4 | DEF-01 3/3; DEF-02 9/9; DEF-03 6/6; DEF-04 3/3 | Controlled reproduction. |
+| Campaign GitHub-hosted | Items | PASS | FAIL | Ý nghĩa |
+| --- | ---: | ---: | ---: | --- |
+| P0 (TC-01..TC-11) | 11 | 4 | 7 | Read-only contract detections DEF-01..03. |
+| P1 (TC-12..TC-21) | 10 | 9 | 1 | Controlled lifecycle; DEF-04 remains red. |
+| Expansion (TC-22..TC-37) | 16 | 10 | 6 | Controlled disposable writes; DEF-03/05/06/07 remain red. |
+| **Evidence ledger total** | **37** | **23** | **14** | Three independent disposable campaigns; not one shared-database run. |
 
-| ID | RCA status | Evidence |
+| ID | Classification / RCA status | Evidence |
 | --- | --- | --- |
 | DEF-01 | LIKELY IMPLEMENTATION PATH | `evidence/defects/DEF-01-recipe-empty-foods-500.md` |
 | DEF-02 | CONFIRMED ROOT CAUSE | `evidence/defects/DEF-02-orderby-null-undocumented-400.md` |
 | DEF-03 | CONFIRMED ROOT CAUSE | `evidence/defects/DEF-03-undocumented-404.md` |
 | DEF-04 | CONFIRMED ROOT CAUSE | `evidence/defects/DEF-04-empty-recipe-name-500.md` |
+| DEF-05 | SUT invalid-reference handling; LIKELY implementation path | `evidence/defects/DEF-05-shopping-item-missing-parent-500.md` |
+| DEF-06 | SUT/contract; exact validator NOT established | `evidence/defects/DEF-06-recipe-partial-put-500.md` |
+| DEF-07 | Contract response mismatch; root cause NOT established | `evidence/defects/DEF-07-recipe-whitespace-name-undocumented-400.md` |
 
-Totals: 4 defects; 2 server-error; 2 contract/documentation. Tested API areas: recipes, shopping lists/items, meal plans. Excluded: auth/token/password, admin, backups, maintenance, import/export, bulk, assets/uploads, streams, webhooks, external utilities and public targets.
+Totals: **7 defect families**. The 14 failed items are retained SUT/contract detections, not harness or environment failures. Tested API areas: recipes, shopping lists/items, meal plans. Excluded: auth/token/password, admin, backups, maintenance, import/export, bulk, assets/uploads, streams, webhooks, external utilities and public targets.

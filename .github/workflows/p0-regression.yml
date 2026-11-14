@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       run_qa_p0:
-        description: "Run authenticated P0 against the protected self-hosted QA runner"
+        description: "Retired: self-hosted authenticated P0 is disabled; use mealie-p0-hosted.yml"
         required: true
         default: false
         type: boolean
@@ -48,7 +48,7 @@ jobs:
 
   qa-p0-contract-campaign:
     name: Protected authenticated P0 campaign
-    if: github.event_name == 'workflow_dispatch' && inputs.run_qa_p0
+    if: ${{ false }} # Retired: GitHub-hosted disposable P0 is the supported campaign.
     runs-on: [self-hosted, windows, mealie-qa]
     environment: qa
     env:

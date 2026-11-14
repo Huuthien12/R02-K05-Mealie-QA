@@ -22,9 +22,18 @@ def test_tc34_put_recipe_name_update():
         )
         assert_status(response, {200, 422}, "TC-34")
         if response.status_code == 200:
+            updated = response.json()
+            if isinstance(updated, dict) and updated.get("slug"):
+                slug = updated["slug"]
+            assert isinstance(updated, dict) and updated.get("slug"), (
+                "TC-34: successful PUT must identify the updated recipe for verification"
+            )
+            # A recipe name may change its slug; retain the server identifier for GET and cleanup.
             current = get(f"/api/recipes/{slug}")
             assert current.status_code == 200
-            assert current.json().get("name") == name
+            current = current.json()
+            assert current.get("slug") == slug, "TC-34: GET returned a different recipe"
+            assert current.get("name") == name, "TC-34: successful PUT name did not persist"
     finally:
         if slug:
             delete(f"/api/recipes/{slug}")
@@ -98,7 +107,9 @@ def test_tc37_recipe_name_length_256():
             assert isinstance(slug, str) and slug, "TC-37: successful create must return a slug"
             current = get(f"/api/recipes/{slug}")
             assert current.status_code == 200
-            assert current.json().get("name") == name
+            current = current.json()
+            assert current.get("slug") == slug, "TC-37: GET returned a different recipe"
+            assert current.get("name") == name, "TC-37: 256-character name did not round-trip exactly"
     finally:
         if slug:
             delete(f"/api/recipes/{slug}")

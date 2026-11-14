@@ -98,7 +98,7 @@ jobs:
   legacy-p0:
     name: Protected legacy P0 (TC-01 to TC-11)
     needs: legacy-inventory
-    if: github.event_name == 'workflow_dispatch' && inputs.run_p0
+    if: ${{ false }} # Retired: use mealie-p0-hosted.yml.
     runs-on: [self-hosted, windows, mealie-qa]
     environment: qa
     env:
@@ -174,7 +174,7 @@ jobs:
   legacy-p1:
     name: Disposable legacy P1 (TC-12 to TC-21)
     needs: legacy-inventory
-    if: github.event_name == 'workflow_dispatch' && inputs.run_p1
+    if: ${{ false }} # Retired: use mealie-p1-hosted.yml.
     runs-on: [self-hosted, windows, mealie-qa-disposable]
     environment: qa
     env:
@@ -260,7 +260,7 @@ jobs:
   legacy-21-summary:
     name: Summarize TC-01 through TC-21
     needs: [legacy-inventory, legacy-p0, legacy-p1]
-    if: always() && github.event_name == 'workflow_dispatch' && inputs.run_p0 && inputs.run_p1
+    if: ${{ false }} # Retired with the self-hosted jobs above; do not synthesize their evidence.
     runs-on: ubuntu-24.04
     steps:
       - name: Download P0 and P1 evidence

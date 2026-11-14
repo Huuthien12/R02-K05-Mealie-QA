@@ -31,9 +31,14 @@ def get(path):
 
 def delete(path):
     try:
-        requests.delete(f"{BASE_URL}{path}", headers=HEADERS, timeout=10)
-    except requests.RequestException:
-        pass
+        response = requests.delete(f"{BASE_URL}{path}", headers=HEADERS, timeout=10)
+    except requests.RequestException as exc:
+        pytest.fail(f"Cleanup request failed for {path}: {exc}")
+    assert response.status_code == 200, (
+        f"Cleanup failed for {path}: expected 200, got {response.status_code}: "
+        f"{response.text[:500]}"
+    )
+    return response
 
 
 def create_list(label):

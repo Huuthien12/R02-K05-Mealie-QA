@@ -29,7 +29,7 @@ def test_tc22_whitespace_shopping_list_name():
 
 
 def test_tc23_unicode_shopping_list_name_round_trip():
-    """TC-23 | REQ-LST-03 | C: 201/422; T: successful value round-trips through GET."""
+    """TC-23 | REQ-LST-03 | Positive Unicode round-trip requires POST 201 then GET exact name."""
     require_p1()
     created_id = None
     name = f"K05-QA-Mua sắm Đà Lạt-{uuid.uuid4().hex[:8]}"
@@ -40,13 +40,14 @@ def test_tc23_unicode_shopping_list_name_round_trip():
             json={"name": name},
             timeout=10,
         )
-        assert_status(response, {201, 422}, "TC-23")
-        if response.status_code == 201:
-            created_id = response.json().get("id")
-            assert created_id, "TC-23: successful create must return an id"
-            current = get(f"/api/households/shopping/lists/{created_id}")
-            assert current.status_code == 200, "TC-23: created list must be readable"
-            assert current.json().get("name") == name
+        assert_status(response, {201}, "TC-23 positive Unicode create")
+        created_id = response.json().get("id")
+        assert created_id, "TC-23: successful create must return an id"
+        current = get(f"/api/households/shopping/lists/{created_id}")
+        assert current.status_code == 200, "TC-23: created list must be readable"
+        current = current.json()
+        assert current.get("id") == created_id, "TC-23: GET returned a different list"
+        assert current.get("name") == name, "TC-23: Unicode name did not round-trip exactly"
     finally:
         if created_id:
             delete(f"/api/households/shopping/lists/{created_id}")
